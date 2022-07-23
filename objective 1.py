@@ -74,7 +74,24 @@ def ModeChoice(data_frame):
     print("Mode share of ativate transport: %.2f%%" % prop_act)
     print("Mode share of public transport: %.2f%%"  % prop_pub)
     print("Mode share of ride share: %.2f%%"        % prop_shr)
+     
     
+def CarbonGenerate():
+    
+    ''' Compute the carbon generated each trip. '''
+    
+    carbon = None
+    
+    carb_inten = ['pet', 'die', 'hyb', 'lpg', 'ele']    # Energy intensity of different energy type
+    trip_mode = None
+    trip_dist = None
+    trip_time = None
+    load_fctr = None
+    
+    carbon = trip_mode * trip_dist * trip_time * load_fctr
+    
+    return carbon
+
     
 def TimePerKilo(df1, df2):
     

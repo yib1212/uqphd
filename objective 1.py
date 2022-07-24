@@ -112,7 +112,8 @@ def CarbonGenerate():
 
 def SA2Population():
     
-    sa2_sex = pd.read_excel("SA2_by_SEXP.xls")
+    df = pd.read_excel("data\TableBuilder\SA2_by_SEXP.xlsx", engine='openpyxl')
+    sa2_sex = np.array(df)[9:-8, 4]
     print(sa2_sex)
 
 if __name__ == "__main__":

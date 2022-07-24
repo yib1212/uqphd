@@ -74,24 +74,7 @@ def ModeChoice(data_frame):
     print("Mode share of ativate transport: %.2f%%" % prop_act)
     print("Mode share of public transport: %.2f%%"  % prop_pub)
     print("Mode share of ride share: %.2f%%"        % prop_shr)
-     
     
-def CarbonGenerate():
-    
-    ''' Compute the carbon generated each trip. '''
-    
-    carbon = None
-    
-    carb_inten = ['pet', 'die', 'hyb', 'lpg', 'ele']    # Energy intensity of different energy type
-    trip_mode = None
-    trip_dist = None
-    trip_time = None
-    load_fctr = None
-    
-    carbon = trip_mode * trip_dist * trip_time * load_fctr
-    
-    return carbon
-
     
 def TimePerKilo(df1, df2):
     
@@ -109,11 +92,34 @@ def TimePerKilo(df1, df2):
     print(fuel_count)
     print(vehi_count)
     
+    
+def CarbonGenerate():
+    
+    ''' Compute the carbon generated each trip. '''
+    
+    carbon = None
+    
+    carb_inten = ['pet', 'die', 'hyb', 'lpg', 'ele']    # Energy intensity of different energy type
+    trip_mode = None
+    trip_dist = None
+    trip_time = None
+    load_fctr = None
+    
+    carbon = trip_mode * trip_dist * trip_time * load_fctr
+    
+    return carbon
+
+
+def SA2Population():
+    
+    sa2_sex = pd.read_excel("SA2_by_SEXP.xls")
+    print(sa2_sex)
 
 if __name__ == "__main__":
     
-    conn = ReadDatabase()
-    df_3 = ReadTable(conn, '3_QTS_VEHICLES')
-    df_5 = ReadTable(conn, '5_QTS_TRIPS')
-    TimePerKilo(df_3, df_5)
+    # conn = ReadDatabase()
+    # df_3 = ReadTable(conn, '3_QTS_VEHICLES')
+    # df_5 = ReadTable(conn, '5_QTS_TRIPS')
+    # TimePerKilo(df_3, df_5)
+    SA2Population()
     #ModeChoice(df_5)

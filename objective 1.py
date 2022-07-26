@@ -6,6 +6,7 @@ Created on Thu Jul 21 03:35:31 2022
 """
 
 import pyodbc
+import dbfread
 import collections
 import pandas as pd
 import numpy as np
@@ -112,15 +113,55 @@ def CarbonGenerate():
 
 def SA2Population():
     
-    df = pd.read_excel("data\TableBuilder\SA2_by_SEXP.xlsx", engine='openpyxl')
-    sa2_sex = np.array(df)[9:-8, 4]
+    ''' The population of all SA2. '''
+    
+    df = pd.read_excel('data\TableBuilder\SA2_by_SEXP.xlsx', engine='openpyxl')
+    sa2_sex = np.array(df)[9:-8, 4] # length: 317
     print(sa2_sex)
+    
+    return None
+
+
+def SA2Info():
+    
+    ''' Get SA2 information from the shapefile. '''
+    
+    sa2 = dbfread.DBF('data\\1270055001_sa2_2016_aust_shape\\SA2_2016_AUST.dbf', encoding='GBK')
+    df = pd.DataFrame(iter(sa2))
+    print(df)
+    
+       
+    return df    
+
+
+def TripNumber(df1, df2):
+    
+    ''' Number of daily trips in SA2 j. '''
+    
+    # household ID and SA1 ID (length: 15543)
+    hhid_1 = np.array(df_1)[:, 0]
+    sa1_id = np.array(df_1)[:, 13]
+    sa2_id = (sa1_id/1e2).astype(int)
+    # Household ID (length: 104024)
+    hhid_5 = np.array(df_5)[:, 1]
+    
+    
+    
+    trip_cnt = np.zeros(317)
+    print(trip_cnt)
+    
+    return sa1_id
+
+    
 
 if __name__ == "__main__":
     
-    # conn = ReadDatabase()
-    # df_3 = ReadTable(conn, '3_QTS_VEHICLES')
-    # df_5 = ReadTable(conn, '5_QTS_TRIPS')
+    conn = ReadDatabase()
+    df_1 = ReadTable(conn, '1_QTS_HOUSEHOLDS')
+    df_3 = ReadTable(conn, '3_QTS_VEHICLES')
+    df_5 = ReadTable(conn, '5_QTS_TRIPS')
     # TimePerKilo(df_3, df_5)
-    SA2Population()
-    #ModeChoice(df_5)
+    num_trip = TripNumber(df_1, df_5)
+    # pop = SA2Population()
+    sa2 = SA2Info()
+    # ModeChoice(df_5)

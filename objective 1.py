@@ -77,7 +77,7 @@ def ModeChoice(data_frame):
     print("Mode share of ride share: %.2f%%"        % prop_shr)
     
     # Assign four modes to all the trips
-    mode_id = []
+    mode_id = [] # Length: 104,024
     for i in mainmode:
         if   i == 'Car driver' or \
              i == 'Car passenger' or \
@@ -95,16 +95,16 @@ def ModeChoice(data_frame):
     return mode_id
     
     
-def TimePerKilo(df1, df2):
+def TimePerKilo(df_3, df_5):
     
     ''' Compute the time used per kilometer of each trip. '''
     
     # Counter({'petrol': 20407, 'diesel': 5764, 'hybrid': 154, 'lpg': 79, 'electric': 34, None: 31})
-    fueltype = np.array(df1)[:, 2]
+    fueltype = np.array(df_3)[:, 2]
     # Counter({'car': 22076, 'van': 3470, 'motorcycle': 770, 'truck': 115, 'other': 38})
-    vehitype = np.array(df1)[:, 3]
-    duration = np.array(df2)[:, 23]
-    cumdist = np.array(df2)[:, 24]
+    vehitype = np.array(df_3)[:, 3]
+    duration = np.array(df_5)[:, 23]
+    cumdist = np.array(df_5)[:, 24]
     
     fuel_count = collections.Counter(fueltype)
     vehi_count = collections.Counter(vehitype)
@@ -137,9 +137,8 @@ def SA2Population():
     
     df = pd.read_excel('data\TableBuilder\SA2_by_SEXP.xlsx', engine='openpyxl')
     sa2_sex = np.array(df)[9:-8, 4] # length: 317
-    print(sa2_sex)
     
-    return None
+    return sa2_sex
 
 
 def SA2Info():
@@ -154,7 +153,7 @@ def SA2Info():
     return sa2_main
 
 
-def TripNumber(df1, df5, sa2_main):
+def TripNumber(df_1, df_5, sa2_main):
     
     ''' Number of daily trips in SA2 j. '''
     
@@ -190,7 +189,7 @@ def ModeProportion(sa2_array, trip_num_sa2, sa2_main, mode_id):
     
     ''' Compute the travel mode proportion of each SA2 region. '''
     
-    mode = np.zeros((len(sa2_main), 4), dtype = int)
+    mode_cnt = np.zeros((len(sa2_main), 4), dtype = int)
     trip_num_sa2 = np.array(trip_num_sa2).reshape((len(trip_num_sa2), 1))
     
     # Rows are SA2 regionm columns are travel model
@@ -198,13 +197,28 @@ def ModeProportion(sa2_array, trip_num_sa2, sa2_main, mode_id):
     for i in range(len(mode_id)):
         row_idx = np.argwhere(sa2_main == sa2_array[i])
         col_idx = mode_id[i]
-        mode[row_idx, col_idx] += 1
+        mode_cnt[row_idx, col_idx] += 1
         
-    mode_prop = np.divide(mode, trip_num_sa2, where=trip_num_sa2!=0)
-    print(mode_prop * 100)
+    mode_prop = np.divide(mode_cnt, trip_num_sa2, where=trip_num_sa2!=0)
     
-    return mode_prop
+    return mode_cnt, mode_prop
 
+
+def AverDistance(df_5, sa2_array, sa2_main, mode_id, mode_cnt):
+    
+    ''' Average distance when using mode i in SA2 region j. '''
+    
+    total_dist = np.zeros(mode_cnt.shape)
+    
+    cumdist = np.array(df_5)[:, 24]
+    for i in range(len(mode_id)):
+        row_idx = np.argwhere(sa2_main == sa2_array[i])
+        col_idx = mode_id[i]
+        total_dist[row_idx, col_idx] += cumdist[i]
+    
+    ave_dist = np.divide(total_dist, mode_cnt, where=mode_cnt!=0)
+    
+    return ave_dist
 
     
 
@@ -214,10 +228,12 @@ if __name__ == "__main__":
     df_1 = ReadTable(conn, '1_QTS_HOUSEHOLDS')
     df_3 = ReadTable(conn, '3_QTS_VEHICLES')
     df_5 = ReadTable(conn, '5_QTS_TRIPS')
+    pop = SA2Population()
     sa2_main = SA2Info()
     # TimePerKilo(df_3, df_5)
-    sa2_array, trip_num_sa2 = TripNumber(df_1, df_5, sa2_main)
+    # sa2_array, trip_num_sa2 = TripNumber(df_1, df_5, sa2_main)
+    # mode_id = ModeChoice(df_5)
+    # mode_cnt, mode_prop = ModeProportion(sa2_array, trip_num_sa2, sa2_main, mode_id)
+    # ave_dist = AverDistance(df_5, sa2_array, sa2_main, mode_id, mode_cnt)
     
-    # pop = SA2Population()
-    mode_id = ModeChoice(df_5)
-    mode_prop = ModeProportion(sa2_array, trip_num_sa2, sa2_main, mode_id)
+    

@@ -191,14 +191,16 @@ def ModeProportion(sa2_array, trip_num_sa2, sa2_main, mode_id):
     ''' Compute the travel mode proportion of each SA2 region. '''
     
     mode = np.zeros((len(sa2_main), 4), dtype = int)
+    trip_num_sa2 = np.array(trip_num_sa2).reshape((len(trip_num_sa2), 1))
+    
     # Rows are SA2 regionm columns are travel model
     # 0: Pri, 1: Act, 2: Shr, 3: Pub
     for i in range(len(mode_id)):
         row_idx = np.argwhere(sa2_main == sa2_array[i])
         col_idx = mode_id[i]
-        mode(row_idx, col_idx) += 1
+        mode[row_idx, col_idx] += 1
         
-    mode_prop = mode / trip_num_sa2
+    mode_prop = np.divide(mode, trip_num_sa2, where=trip_num_sa2!=0)
     print(mode_prop * 100)
     
     return mode_prop
@@ -215,6 +217,7 @@ if __name__ == "__main__":
     sa2_main = SA2Info()
     # TimePerKilo(df_3, df_5)
     sa2_array, trip_num_sa2 = TripNumber(df_1, df_5, sa2_main)
+    
     # pop = SA2Population()
     mode_id = ModeChoice(df_5)
     mode_prop = ModeProportion(sa2_array, trip_num_sa2, sa2_main, mode_id)

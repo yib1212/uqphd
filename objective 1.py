@@ -76,26 +76,28 @@ def ModeChoice(data_frame):
     print("Mode share of public transport: %.2f%%"  % prop_pub)
     print("Mode share of ride share: %.2f%%"        % prop_shr)
     
+    # Assign four modes to all the trips
     mode_id = []
     for i in mainmode:
-        if i == 'Car driver' or \
-           i == 'Car passenger' or \
-           i == 'Truck driver' or \
-           i == 'Motorcycle driver' or \
-           i == 'Motorcycle passenger':
-            mode_id.append('Private Vehicle')
+        if   i == 'Car driver' or \
+             i == 'Car passenger' or \
+             i == 'Truck driver' or \
+             i == 'Motorcycle driver' or \
+             i == 'Motorcycle passenger':
+            mode_id.append(0) # Private vehicle
         elif i == 'Walking' or i == 'Bicycle':
-            mode_id.append('Active Transport')
+            mode_id.append(1) # Active transport
         elif i == 'Taxi' or i == 'Uber / Other Ride Share':
-            mode_id.append('Taxi or Rideshare')
+            mode_id.append(2) # Taxi or rideshare
         else:
-            mode_id.append('Public Transport')
-    
+            mode_id.append(3) # Public transport'
     
     return mode_id
     
     
 def TimePerKilo(df1, df2):
+    
+    ''' Compute the time used per kilometer of each trip. '''
     
     # Counter({'petrol': 20407, 'diesel': 5764, 'hybrid': 154, 'lpg': 79, 'electric': 34, None: 31})
     fueltype = np.array(df1)[:, 2]
@@ -142,17 +144,17 @@ def SA2Population():
 
 def SA2Info():
     
-    ''' Get SA2 information from the shapefile. '''
+    ''' Get SA2 information from the database file. '''
     
     sa2 = dbfread.DBF('data\\1270055001_sa2_2016_aust_shape\\SA2_2016_AUST.dbf', encoding='GBK')
     df = pd.DataFrame(iter(sa2))
     
     sa2_main = np.array(df)[:, 0].astype(int)
        
-    return sa2_main    
+    return sa2_main
 
 
-def TripNumber(df1, df5, sa2_list):
+def TripNumber(df1, df5, sa2_main):
     
     ''' Number of daily trips in SA2 j. '''
     
@@ -178,10 +180,29 @@ def TripNumber(df1, df5, sa2_list):
     
     # Rearrange the results in the order of SA2 within the shapefile
     trip_num_sa2 = []
-    for j in sa2_list:
+    for j in sa2_main:
         trip_num_sa2.append(trip_num.get(j, 0))
     
-    return trip_num_sa2
+    return sa2_array, trip_num_sa2
+
+
+def ModeProportion(sa2_array, trip_num_sa2, sa2_main, mode_id):
+    
+    ''' Compute the travel mode proportion of each SA2 region. '''
+    
+    mode = np.zeros((len(sa2_main), 4), dtype = int)
+    # Rows are SA2 regionm columns are travel model
+    # 0: Pri, 1: Act, 2: Shr, 3: Pub
+    for i in range(len(mode_id)):
+        row_idx = np.argwhere(sa2_main == sa2_array[i])
+        col_idx = mode_id[i]
+        mode(row_idx, col_idx) += 1
+        
+    mode_prop = mode / trip_num_sa2
+    print(mode_prop * 100)
+    
+    return mode_prop
+
 
     
 
@@ -191,9 +212,9 @@ if __name__ == "__main__":
     df_1 = ReadTable(conn, '1_QTS_HOUSEHOLDS')
     df_3 = ReadTable(conn, '3_QTS_VEHICLES')
     df_5 = ReadTable(conn, '5_QTS_TRIPS')
-    sa2_list = SA2Info()
+    sa2_main = SA2Info()
     # TimePerKilo(df_3, df_5)
-    # num_trip = TripNumber(df_1, df_5, sa2_list)
+    sa2_array, trip_num_sa2 = TripNumber(df_1, df_5, sa2_main)
     # pop = SA2Population()
-    
     mode_id = ModeChoice(df_5)
+    mode_prop = ModeProportion(sa2_array, trip_num_sa2, sa2_main, mode_id)

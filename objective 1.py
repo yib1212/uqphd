@@ -155,10 +155,15 @@ def SA2Info():
 
 def TripNumber(df_1, df_5, sa2_main):
     
-    ''' Number of daily trips in SA2 j. '''
+    ''' 
+    Number of daily trips in SA2 j. 
+    Statistics on the number of people who participated in the traffic survey. 
     
-    # household ID and SA1 ID (length: 15543)
+    '''
+    
+    # Household ID, household size, and SA1 ID (length: 15543)
     hhid_1 = np.array(df_1)[:, 0].astype(int)
+    hhsize = np.array(df_1)[:, 1].astype(int)
     sa1_id = np.array(df_1)[:, 13]
     sa2_id = (sa1_id/1e2).astype(int)
     # Household ID (length: 104024)
@@ -166,6 +171,7 @@ def TripNumber(df_1, df_5, sa2_main):
     
     sa2_array = []
     counter = 0
+    trip_pop = np.zeros(len(sa2_main), dtype = int)
     
     # Record the SA2 ID of each trip
     for i in hhid_5:
@@ -181,8 +187,16 @@ def TripNumber(df_1, df_5, sa2_main):
     trip_num_sa2 = []
     for j in sa2_main:
         trip_num_sa2.append(trip_num.get(j, 0))
+        
+    # Comput the number of people who participated in the traffic survey
+    for k in range(len(hhsize)):
+        idx = np.argwhere(sa2_main == sa2_id[k])
+        trip_pop[idx] += hhsize[k]
     
-    return sa2_array, trip_num_sa2
+    # Number of trips per people per day
+    NT = np.around(np.divide(np.array(trip_num_sa2), trip_pop, where=trip_pop!=0), 3)
+        
+    return sa2_array, trip_num_sa2, NT
 
 
 def ModeProportion(sa2_array, trip_num_sa2, sa2_main, mode_id):
@@ -230,8 +244,9 @@ if __name__ == "__main__":
     df_5 = ReadTable(conn, '5_QTS_TRIPS')
     pop = SA2Population()
     sa2_main = SA2Info()
-    # TimePerKilo(df_3, df_5)
-    # sa2_array, trip_num_sa2 = TripNumber(df_1, df_5, sa2_main)
+    TimePerKilo(df_3, df_5)
+    sa2_array, trip_num_sa2, NT = TripNumber(df_1, df_5, sa2_main)
+    
     # mode_id = ModeChoice(df_5)
     # mode_cnt, mode_prop = ModeProportion(sa2_array, trip_num_sa2, sa2_main, mode_id)
     # ave_dist = AverDistance(df_5, sa2_array, sa2_main, mode_id, mode_cnt)

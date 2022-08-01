@@ -234,6 +234,22 @@ def AverDistance(df_5, sa2_array, sa2_main, mode_id, mode_cnt):
     
     return ave_dist
 
+
+def BusLoadFactor():
+    
+    ''' Compute the LF of public transport. '''
+    
+    # Translink fast facts
+    daytrip_1819 = 519795
+    daytrip_1920 = 418054
+    daytrip_2021 = 326193
+    daytrip_total = daytrip_1819 + daytrip_1920 + daytrip_2021
+    yeartrip = daytrip_total * 365
+    
+    
+    
+    return None
+    
     
 
 if __name__ == "__main__":

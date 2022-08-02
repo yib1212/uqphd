@@ -32,7 +32,7 @@ class BusRoute(object):
         
     def TripsNumber(self):
         
-        ''' Compute the ... '''
+        ''' Compute the number of trips for each route. '''
         
         num_trips = np.zeros((len(self.g_route_id), 2), dtype = int)
         num_days = 0
@@ -66,7 +66,7 @@ class BusRoute(object):
         for i in range(len(self.line_len)):
             
             idx_lv = np.argwhere(self.id == self.line_var_id[i])
-            idx_lines = self.line_id[idx_lv].astype(int)[0][0] - 1
+            idx_lines = self.line_id[idx_lv].astype(int)[0][0] - 1 # Notice the 0 and 1
             dis_trips[idx_lines] += line_len[i]
             
         return dis_trips

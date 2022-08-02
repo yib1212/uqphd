@@ -12,268 +12,277 @@ import pandas as pd
 import numpy as np
 
 
-def ReadDatabase():
+class CarbonEmission(object):
     
-    ''' Read the MS access database and return the dataframe using pandas. '''
-    
-    # Database location
-    conn_str = (r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};'
-                r'DBQ=data\Travel Survey\2018-21_pooled_seq_qts_erv1.0.accdb;')
-    
-    conn = pyodbc.connect(conn_str)
-    
-    cursor = conn.cursor()
-    for i in cursor.tables(tableType='TABLE'):
-        print(i.table_name)
+    def __init__(self):
         
-    return conn
-
-
-def ReadTable(conn, table_name):
+        return None
     
-    # Table name
-    df = pd.read_sql(f'select * from {table_name}', conn)
     
-    return df
-
-
-def ModeChoice(data_frame):
-    
-    ''' Compute the proportion of transport mode share of the SEQ. '''
-    
-    mainmode = np.array(data_frame)[:, 12]
-    
-    total = np.size(mainmode)
-    data_count = collections.Counter(mainmode)
-    
-    num_pri = data_count['Car driver'] \
-            + data_count['Car passenger'] \
-            + data_count['Truck driver'] \
-            + data_count['Motorcycle driver'] \
-            + data_count['Motorcycle passenger']
-    num_act = data_count['Walking'] \
-            + data_count['Bicycle']
-    num_pub = data_count['Train'] \
-            + data_count['Ferry'] \
-            + data_count['Light rail'] \
-            + data_count['Mobility scooter'] \
-            + data_count['Public bus'] \
-            + data_count['Public Bus'] \
-            + data_count['School bus (with route number)'] \
-            + data_count['School bus (private/chartered)'] \
-            + data_count['Charter/Courtesy/Other bus'] \
-            + data_count['Other method']
-    num_shr = data_count['Taxi'] \
-            + data_count['Uber / Other Ride Share']
-    
-    prop_pri = num_pri / total * 100
-    prop_act = num_act / total * 100
-    prop_pub = num_pub / total * 100
-    prop_shr = num_shr / total * 100
+    def ReadDatabase(self):
+        
+        ''' Read the MS access database and return the dataframe using pandas. '''
+        
+        # Database location
+        conn_str = (r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};'
+                    r'DBQ=data\Travel Survey\2018-21_pooled_seq_qts_erv1.0.accdb;')
+        
+        conn = pyodbc.connect(conn_str)
+        
+        cursor = conn.cursor()
+        for i in cursor.tables(tableType='TABLE'):
+            print(i.table_name)
             
-    print("Mode share of pirvate vehicle: %.2f%%"   % prop_pri)
-    print("Mode share of ativate transport: %.2f%%" % prop_act)
-    print("Mode share of public transport: %.2f%%"  % prop_pub)
-    print("Mode share of ride share: %.2f%%"        % prop_shr)
-    
-    # Assign four modes to all the trips
-    mode_id = [] # Length: 104,024
-    for i in mainmode:
-        if   i == 'Car driver' or \
-             i == 'Car passenger' or \
-             i == 'Truck driver' or \
-             i == 'Motorcycle driver' or \
-             i == 'Motorcycle passenger':
-            mode_id.append(0) # Private vehicle
-        elif i == 'Walking' or i == 'Bicycle':
-            mode_id.append(1) # Active transport
-        elif i == 'Taxi' or i == 'Uber / Other Ride Share':
-            mode_id.append(2) # Taxi or rideshare
-        else:
-            mode_id.append(3) # Public transport'
-    
-    return mode_id
+        return conn
     
     
-def TimePerKilo(df_3, df_5):
-    
-    ''' Compute the time used per kilometer of each trip. '''
-    
-    # Counter({'petrol': 20407, 'diesel': 5764, 'hybrid': 154, 'lpg': 79, 'electric': 34, None: 31})
-    fueltype = np.array(df_3)[:, 2]
-    # Counter({'car': 22076, 'van': 3470, 'motorcycle': 770, 'truck': 115, 'other': 38})
-    vehitype = np.array(df_3)[:, 3]
-    duration = np.array(df_5)[:, 23]
-    cumdist = np.array(df_5)[:, 24]
-    
-    fuel_count = collections.Counter(fueltype)
-    vehi_count = collections.Counter(vehitype)
-    
-    time_per_kilo = np.divide(duration, cumdist, out=np.zeros_like(duration), where=cumdist!=0)
-    print(fuel_count)
-    print(vehi_count)
-    
-    
-def CarbonGenerate():
-    
-    ''' Compute the carbon generated each trip. '''
-    
-    carbon = None
-    
-    carb_inten = ['pet', 'die', 'hyb', 'lpg', 'ele']    # Energy intensity of different energy type
-    trip_mode = None
-    trip_dist = None
-    trip_time = None
-    load_fctr = None
-    
-    carbon = trip_mode * trip_dist * trip_time * load_fctr
-    
-    return carbon
-
-
-def SA2Population():
-    
-    ''' The population of all SA2. '''
-    
-    df = pd.read_excel('data\TableBuilder\SA2_by_SEXP.xlsx', engine='openpyxl')
-    sa2_sex = np.array(df)[9:-8, 4] # length: 317
-    
-    return sa2_sex
-
-
-def SA2Info():
-    
-    ''' Get SA2 information from the database file. '''
-    
-    sa2 = dbfread.DBF('data\\1270055001_sa2_2016_aust_shape\\SA2_2016_AUST.dbf', encoding='GBK')
-    df = pd.DataFrame(iter(sa2))
-    
-    sa2_main = np.array(df)[:, 0].astype(int)
-       
-    return sa2_main
-
-
-def TripNumber(df_1, df_5, sa2_main):
-    
-    ''' 
-    Number of daily trips in SA2 j. 
-    Statistics on the number of people who participated in the traffic survey. 
-    
-    '''
-    
-    # Household ID, household size, and SA1 ID (length: 15543)
-    hhid_1 = np.array(df_1)[:, 0].astype(int)
-    hhsize = np.array(df_1)[:, 1].astype(int)
-    sa1_id = np.array(df_1)[:, 13]
-    sa2_id = (sa1_id/1e2).astype(int)
-    # Household ID (length: 104024)
-    hhid_5 = np.array(df_5)[:, 1].astype(int)
-    
-    sa2_array = []
-    counter = 0
-    trip_pop = np.zeros(len(sa2_main), dtype = int)
-    
-    # Record the SA2 ID of each trip
-    for i in hhid_5:
-        index = np.argwhere(hhid_1 == i)
-        sa2_array.append(sa2_id[index[0, 0]])
-        counter += 1
-        print("Matching the %d trip, 104024 in total" % counter)
-    
-    # The length of trip_num is 275
-    trip_num = dict(collections.Counter(sa2_array))
-    
-    # Rearrange the results in the order of SA2 within the shapefile
-    trip_num_sa2 = []
-    for j in sa2_main:
-        trip_num_sa2.append(trip_num.get(j, 0))
+    def ReadTable(self, conn, table_name):
         
-    # Comput the number of people who participated in the traffic survey
-    for k in range(len(hhsize)):
-        idx = np.argwhere(sa2_main == sa2_id[k])
-        trip_pop[idx] += hhsize[k]
-    
-    # Number of trips per people per day
-    NT = np.around(np.divide(np.array(trip_num_sa2), trip_pop, where=trip_pop!=0), 3)
+        # Table name
+        df = pd.read_sql(f'select * from {table_name}', conn)
         
-    return sa2_array, trip_num_sa2, NT
-
-
-def ModeProportion(sa2_array, trip_num_sa2, sa2_main, mode_id):
+        return df
     
-    ''' Compute the travel mode proportion of each SA2 region. '''
     
-    mode_cnt = np.zeros((len(sa2_main), 4), dtype = int)
-    trip_num_sa2 = np.array(trip_num_sa2).reshape((len(trip_num_sa2), 1))
-    
-    # Rows are SA2 regionm columns are travel model
-    # 0: Pri, 1: Act, 2: Shr, 3: Pub
-    for i in range(len(mode_id)):
-        row_idx = np.argwhere(sa2_main == sa2_array[i])
-        col_idx = mode_id[i]
-        mode_cnt[row_idx, col_idx] += 1
+    def ModeChoice(self, data_frame):
         
-    mode_prop = np.divide(mode_cnt, trip_num_sa2, where=trip_num_sa2!=0)
+        ''' Compute the proportion of transport mode share of the SEQ. '''
+        
+        mainmode = np.array(data_frame)[:, 12]
+        
+        total = np.size(mainmode)
+        data_count = collections.Counter(mainmode)
+        
+        num_pri = data_count['Car driver'] \
+                + data_count['Car passenger'] \
+                + data_count['Truck driver'] \
+                + data_count['Motorcycle driver'] \
+                + data_count['Motorcycle passenger']
+        num_act = data_count['Walking'] \
+                + data_count['Bicycle']
+        num_pub = data_count['Train'] \
+                + data_count['Ferry'] \
+                + data_count['Light rail'] \
+                + data_count['Mobility scooter'] \
+                + data_count['Public bus'] \
+                + data_count['Public Bus'] \
+                + data_count['School bus (with route number)'] \
+                + data_count['School bus (private/chartered)'] \
+                + data_count['Charter/Courtesy/Other bus'] \
+                + data_count['Other method']
+        num_shr = data_count['Taxi'] \
+                + data_count['Uber / Other Ride Share']
+        
+        prop_pri = num_pri / total * 100
+        prop_act = num_act / total * 100
+        prop_pub = num_pub / total * 100
+        prop_shr = num_shr / total * 100
+                
+        print("Mode share of pirvate vehicle: %.2f%%"   % prop_pri)
+        print("Mode share of ativate transport: %.2f%%" % prop_act)
+        print("Mode share of public transport: %.2f%%"  % prop_pub)
+        print("Mode share of ride share: %.2f%%"        % prop_shr)
+        
+        # Assign four modes to all the trips
+        mode_id = [] # Length: 104,024
+        for i in mainmode:
+            if   i == 'Car driver' or \
+                 i == 'Car passenger' or \
+                 i == 'Truck driver' or \
+                 i == 'Motorcycle driver' or \
+                 i == 'Motorcycle passenger':
+                mode_id.append(0) # Private vehicle
+            elif i == 'Walking' or i == 'Bicycle':
+                mode_id.append(1) # Active transport
+            elif i == 'Taxi' or i == 'Uber / Other Ride Share':
+                mode_id.append(2) # Taxi or rideshare
+            else:
+                mode_id.append(3) # Public transport'
+        
+        return mode_id
+        
+        
+    def TimePerKilo(self, df_3, df_5):
+        
+        ''' Compute the time used per kilometer of each trip. '''
+        
+        # Counter({'petrol': 20407, 'diesel': 5764, 'hybrid': 154, 'lpg': 79, 'electric': 34, None: 31})
+        fueltype = np.array(df_3)[:, 2]
+        # Counter({'car': 22076, 'van': 3470, 'motorcycle': 770, 'truck': 115, 'other': 38})
+        vehitype = np.array(df_3)[:, 3]
+        duration = np.array(df_5)[:, 23]
+        cumdist = np.array(df_5)[:, 24]
+        
+        fuel_count = collections.Counter(fueltype)
+        vehi_count = collections.Counter(vehitype)
+        
+        time_per_kilo = np.divide(duration, cumdist, out=np.zeros_like(duration), where=cumdist!=0)
+        print(fuel_count)
+        print(vehi_count)
+        
+        
+    def CarbonGenerate(self):
+        
+        ''' Compute the carbon generated each trip. '''
+        
+        carbon = None
+        
+        carb_inten = ['pet', 'die', 'hyb', 'lpg', 'ele']    # Energy intensity of different energy type
+        trip_mode = None
+        trip_dist = None
+        trip_time = None
+        load_fctr = None
+        
+        carbon = trip_mode * trip_dist * trip_time * load_fctr
+        
+        return carbon
     
-    return mode_cnt, mode_prop
-
-
-def AverDistance(df_5, sa2_array, sa2_main, mode_id, mode_cnt):
     
-    ''' Average distance when using mode i in SA2 region j. '''
+    def SA2Population(self, ):
+        
+        ''' The population of all SA2. '''
+        
+        df = pd.read_excel('data\TableBuilder\SA2_by_SEXP.xlsx', engine='openpyxl')
+        sa2_sex = np.array(df)[9:-8, 4] # length: 317
+        
+        return sa2_sex
     
-    total_dist = np.zeros(mode_cnt.shape)
     
-    cumdist = np.array(df_5)[:, 24]
-    for i in range(len(mode_id)):
-        row_idx = np.argwhere(sa2_main == sa2_array[i])
-        col_idx = mode_id[i]
-        total_dist[row_idx, col_idx] += cumdist[i]
+    def SA2Info(self, ):
+        
+        ''' Get SA2 information from the database file. '''
+        
+        sa2 = dbfread.DBF('data\\1270055001_sa2_2016_aust_shape\\SA2_2016_AUST.dbf', encoding='GBK')
+        df = pd.DataFrame(iter(sa2))
+        
+        sa2_main = np.array(df)[:, 0].astype(int)
+           
+        return sa2_main
     
-    ave_dist = np.divide(total_dist, mode_cnt, where=mode_cnt!=0)
     
-    return ave_dist
-
-
-def BusLoadFactor(ave_dist):
+    def TripNumber(self, df_1, df_5, sa2_main):
+        
+        ''' 
+        Number of daily trips in SA2 j. 
+        Statistics on the number of people who participated in the traffic survey. 
+        
+        '''
+        
+        # Household ID, household size, and SA1 ID (length: 15543)
+        hhid_1 = np.array(df_1)[:, 0].astype(int)
+        hhsize = np.array(df_1)[:, 1].astype(int)
+        sa1_id = np.array(df_1)[:, 13]
+        sa2_id = (sa1_id/1e2).astype(int)
+        # Household ID (length: 104024)
+        hhid_5 = np.array(df_5)[:, 1].astype(int)
+        
+        sa2_array = []
+        counter = 0
+        trip_pop = np.zeros(len(sa2_main), dtype = int)
+        
+        # Record the SA2 ID of each trip
+        for i in hhid_5:
+            index = np.argwhere(hhid_1 == i)
+            sa2_array.append(sa2_id[index[0, 0]])
+            counter += 1
+            print("Matching the %d trip, 104024 in total" % counter)
+        
+        # The length of trip_num is 275
+        trip_num = dict(collections.Counter(sa2_array))
+        
+        # Rearrange the results in the order of SA2 within the shapefile
+        trip_num_sa2 = []
+        for j in sa2_main:
+            trip_num_sa2.append(trip_num.get(j, 0))
+            
+        # Comput the number of people who participated in the traffic survey
+        for k in range(len(hhsize)):
+            idx = np.argwhere(sa2_main == sa2_id[k])
+            trip_pop[idx] += hhsize[k]
+        
+        # Number of trips per people per day
+        NT = np.around(np.divide(np.array(trip_num_sa2), trip_pop, where=trip_pop!=0), 3)
+            
+        return sa2_array, trip_num_sa2, NT
     
-    ''' Compute the LF of public transport. '''
     
-    # Translink fast facts
-    daytrip_1819 = 519795
-    daytrip_1920 = 418054
-    daytrip_2021 = 326193
-    daytrip_total = daytrip_1819 + daytrip_1920 + daytrip_2021
-    yeartrip = daytrip_total * 365
-    ppl_day = 421347.3333333333
-    tot_dist = 4548033.226433979
+    def ModeProportion(self, sa2_array, trip_num_sa2, sa2_main, mode_id):
+        
+        ''' Compute the travel mode proportion of each SA2 region. '''
+        
+        mode_cnt = np.zeros((len(sa2_main), 4), dtype = int)
+        trip_num_sa2 = np.array(trip_num_sa2).reshape((len(trip_num_sa2), 1))
+        
+        # Rows are SA2 regionm columns are travel model
+        # 0: Pri, 1: Act, 2: Shr, 3: Pub
+        for i in range(len(mode_id)):
+            row_idx = np.argwhere(sa2_main == sa2_array[i])
+            col_idx = mode_id[i]
+            mode_cnt[row_idx, col_idx] += 1
+            
+        mode_prop = np.divide(mode_cnt, trip_num_sa2, where=trip_num_sa2!=0)
+        
+        return mode_cnt, mode_prop
     
-    are_bus_dist = ave_dist[:, 3]
-    are_bus_dist = np.argwhere(are_bus_dist)
-    mean_dist = np.mean(are_bus_dist)
     
-    total_ppl_dist = ppl_day * mean_dist
-    print(total_ppl_dist / tot_dist)
+    def AverDistance(self, df_5, sa2_array, sa2_main, mode_id, mode_cnt):
+        
+        ''' Average distance when using mode i in SA2 region j. '''
+        
+        total_dist = np.zeros(mode_cnt.shape)
+        
+        cumdist = np.array(df_5)[:, 24]
+        for i in range(len(mode_id)):
+            row_idx = np.argwhere(sa2_main == sa2_array[i])
+            col_idx = mode_id[i]
+            total_dist[row_idx, col_idx] += cumdist[i]
+        
+        ave_dist = np.divide(total_dist, mode_cnt, where=mode_cnt!=0)
+        
+        return ave_dist
     
-    result = 14.821164013245179
     
-    return None
+    def BusLoadFactor(self, ave_dist):
+        
+        ''' Compute the LF of public transport. '''
+        
+        # Translink fast facts
+        daytrip_1819 = 519795
+        daytrip_1920 = 418054
+        daytrip_2021 = 326193
+        daytrip_total = daytrip_1819 + daytrip_1920 + daytrip_2021
+        yeartrip = daytrip_total * 365
+        ppl_day = 421347.3333333333
+        tot_dist = 4548033.226433979
+        
+        are_bus_dist = ave_dist[:, 3]
+        are_bus_dist = np.argwhere(are_bus_dist)
+        mean_dist = np.mean(are_bus_dist)
+        
+        total_ppl_dist = ppl_day * mean_dist
+        print(total_ppl_dist / tot_dist)
+        
+        result = 14.821164013245179
+        
+        return None
     
     
 
 if __name__ == "__main__":
     
-    conn = ReadDatabase()
-    df_1 = ReadTable(conn, '1_QTS_HOUSEHOLDS')
-    df_3 = ReadTable(conn, '3_QTS_VEHICLES')
-    df_5 = ReadTable(conn, '5_QTS_TRIPS')
-    pop = SA2Population()
-    sa2_main = SA2Info()
-    TimePerKilo(df_3, df_5)
-    sa2_array, trip_num_sa2, NT = TripNumber(df_1, df_5, sa2_main)
+    carbon = CarbonEmission()
     
-    mode_id = ModeChoice(df_5)
-    mode_cnt, mode_prop = ModeProportion(sa2_array, trip_num_sa2, sa2_main, mode_id)
-    ave_dist = AverDistance(df_5, sa2_array, sa2_main, mode_id, mode_cnt)
-    BLF = BusLoadFactor(ave_dist)
+    conn = carbon.ReadDatabase()
+    df_1 = carbon.ReadTable(conn, '1_QTS_HOUSEHOLDS')
+    df_3 = carbon.ReadTable(conn, '3_QTS_VEHICLES')
+    df_5 = carbon.ReadTable(conn, '5_QTS_TRIPS')
+    pop = carbon.SA2Population()
+    sa2_main = carbon.SA2Info()
+    carbon.TimePerKilo(df_3, df_5)
+    sa2_array, trip_num_sa2, NT = carbon.TripNumber(df_1, df_5, sa2_main)
+    
+    mode_id = carbon.ModeChoice(df_5)
+    mode_cnt, mode_prop = carbon.ModeProportion(sa2_array, trip_num_sa2, sa2_main, mode_id)
+    ave_dist = carbon.AverDistance(df_5, sa2_array, sa2_main, mode_id, mode_cnt)
+    BLF = carbon.BusLoadFactor(ave_dist)
     

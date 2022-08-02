@@ -235,7 +235,7 @@ def AverDistance(df_5, sa2_array, sa2_main, mode_id, mode_cnt):
     return ave_dist
 
 
-def BusLoadFactor():
+def BusLoadFactor(ave_dist):
     
     ''' Compute the LF of public transport. '''
     
@@ -245,8 +245,17 @@ def BusLoadFactor():
     daytrip_2021 = 326193
     daytrip_total = daytrip_1819 + daytrip_1920 + daytrip_2021
     yeartrip = daytrip_total * 365
+    ppl_day = 421347.3333333333
+    tot_dist = 4548033.226433979
     
+    are_bus_dist = ave_dist[:, 3]
+    are_bus_dist = np.argwhere(are_bus_dist)
+    mean_dist = np.mean(are_bus_dist)
     
+    total_ppl_dist = ppl_day * mean_dist
+    print(total_ppl_dist / tot_dist)
+    
+    result = 14.821164013245179
     
     return None
     
@@ -263,8 +272,8 @@ if __name__ == "__main__":
     TimePerKilo(df_3, df_5)
     sa2_array, trip_num_sa2, NT = TripNumber(df_1, df_5, sa2_main)
     
-    # mode_id = ModeChoice(df_5)
-    # mode_cnt, mode_prop = ModeProportion(sa2_array, trip_num_sa2, sa2_main, mode_id)
-    # ave_dist = AverDistance(df_5, sa2_array, sa2_main, mode_id, mode_cnt)
-    
+    mode_id = ModeChoice(df_5)
+    mode_cnt, mode_prop = ModeProportion(sa2_array, trip_num_sa2, sa2_main, mode_id)
+    ave_dist = AverDistance(df_5, sa2_array, sa2_main, mode_id, mode_cnt)
+    BLF = BusLoadFactor(ave_dist)
     

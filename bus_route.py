@@ -38,10 +38,8 @@ class BusRoute(object):
         num_days = 0
         
         for i in range(len(self.route_id)):
-            
             idx_trips = np.argwhere(self.g_route_id == self.route_id[i])
             idx_wd = np.argwhere(self.weekday[:, 0] == self.service_id[i])[0][0]
-            
             # If the routes are operated in weekdays
             flag = np.sum(self.weekday[idx_wd, 1:6].astype(int))
             num_days += flag
@@ -51,6 +49,9 @@ class BusRoute(object):
                     num_trips[idx_trips, 0] += flag
                 else:
                     num_trips[idx_trips, 1] += flag
+        
+        df = pd.DataFrame(num_trips)
+        # df.to_csv('data\\bus_trip_number.csv')
         
         return num_trips
     
@@ -62,9 +63,7 @@ class BusRoute(object):
         dis_trips = np.zeros(len(self.g_route_id))
         line_len = self.line_len.astype(float)
         
-        
         for i in range(len(self.line_len)):
-            
             idx_lv = np.argwhere(self.id == self.line_var_id[i])
             idx_lines = self.line_id[idx_lv].astype(int)[0][0] - 1 # Notice the 0 and 1
             dis_trips[idx_lines] += line_len[i]
@@ -72,13 +71,17 @@ class BusRoute(object):
         return dis_trips
     
     
-    def TotalDistance(self, num_trips, dis_trips):
+    def TotalDistance(self, dis_trips):
         
         ''' Compute the total distance. '''
         
-        num_trips = num_trips.sum(axis=1)
-        tot_dist = np.dot(num_trips, dis_trips)
-                
+        df = pd.read_csv('data\\bus_trip_number_flag.csv', header=None)
+        num_trips = np.array(df)[1:, :].astype(int)
+        tot_dist = 0
+        for i in range(num_trips.shape[0]):
+            if num_trips[i][3] == 1:
+                tot_dist += (num_trips[i][1] + num_trips[i][2]) * dis_trips[i]
+        
         return tot_dist
             
         
@@ -88,5 +91,7 @@ if __name__ == "__main__":
     b = BusRoute()
     num_trips = b.TripsNumber()
     dis_trips = b.TripsDistance()
-    tot_dist = b.TotalDistance(num_trips, dis_trips)
+    tot_dist = b.TotalDistance(dis_trips)
     print(tot_dist)
+    
+    result_bus = 12066198846.531265

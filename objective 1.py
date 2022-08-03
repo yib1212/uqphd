@@ -231,12 +231,13 @@ class CarbonEmission(object):
             total_dist[row_idx, col_idx] += cumdist[i]
         
         ave_dist = np.divide(total_dist, mode_cnt, where=mode_cnt!=0)
+        # Average distance by public transport of the entire region: 23.837 km
         self.ave_dist_tot = np.sum(total_dist[:, 3]) / np.sum(mode_cnt[:, 3])
         
         return ave_dist
     
     
-    def BusLoadFactor(self, ave_dist):
+    def BusLoadFactor(self):
         
         ''' Compute the LF of public transport. '''
         
@@ -247,16 +248,13 @@ class CarbonEmission(object):
         daytrip_total = daytrip_1819 + daytrip_1920 + daytrip_2021
         yeartrip = daytrip_total * 365
         ppl_day = 421347.3333333333
-        tot_dist = 4548033.226433979
+        tot_dist = 12066198846.531265 / 5 / 1000 #4548033.226433979
         
-        ave_bus_dist = ave_dist[:, 3]
-        total_dist = 0
-        cnt = 0
-                
         total_ppl_dist = ppl_day * self.ave_dist_tot
+        print(self.ave_dist_tot)
         print(total_ppl_dist / tot_dist)
         
-        result = 14.821164013245179
+        result = 4.161895802711924
         
         return None
     
@@ -275,5 +273,5 @@ if __name__ == "__main__":
     mode_id = carbon.ModeChoice()
     mode_cnt, mode_prop = carbon.ModeProportion(sa2_array, trip_num_sa2, mode_id)
     ave_dist = carbon.AverDistance(sa2_array, mode_id, mode_cnt)
-    BLF = carbon.BusLoadFactor(ave_dist)
+    BLF = carbon.BusLoadFactor()
     

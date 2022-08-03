@@ -16,11 +16,6 @@ class CarbonEmission(object):
     
     def __init__(self):
         
-        return None
-    
-    
-    def ReadDatabase(self):
-        
         ''' Read the MS access database and return the dataframe using pandas. '''
         
         # Database location
@@ -33,22 +28,18 @@ class CarbonEmission(object):
         for i in cursor.tables(tableType='TABLE'):
             print(i.table_name)
             
-        return conn
-    
-    
-    def ReadTable(self, conn, table_name):
+        self.df_1 = pd.read_sql(f'select * from 1_QTS_HOUSEHOLDS', conn)
+        self.df_3 = pd.read_sql(f'select * from 3_QTS_VEHICLES', conn)
+        self.df_5 = pd.read_sql(f'select * from 5_QTS_TRIPS', conn)
         
-        # Table name
-        df = pd.read_sql(f'select * from {table_name}', conn)
-        
-        return df
+        return None
     
     
-    def ModeChoice(self, data_frame):
+    def ModeChoice(self):
         
         ''' Compute the proportion of transport mode share of the SEQ. '''
         
-        mainmode = np.array(data_frame)[:, 12]
+        mainmode = np.array(self.df_5)[:, 12]
         
         total = np.size(mainmode)
         data_count = collections.Counter(mainmode)
@@ -102,16 +93,16 @@ class CarbonEmission(object):
         return mode_id
         
         
-    def TimePerKilo(self, df_3, df_5):
+    def TimePerKilo(self):
         
         ''' Compute the time used per kilometer of each trip. '''
         
         # Counter({'petrol': 20407, 'diesel': 5764, 'hybrid': 154, 'lpg': 79, 'electric': 34, None: 31})
-        fueltype = np.array(df_3)[:, 2]
+        fueltype = np.array(self.df_3)[:, 2]
         # Counter({'car': 22076, 'van': 3470, 'motorcycle': 770, 'truck': 115, 'other': 38})
-        vehitype = np.array(df_3)[:, 3]
-        duration = np.array(df_5)[:, 23]
-        cumdist = np.array(df_5)[:, 24]
+        vehitype = np.array(self.df_3)[:, 3]
+        duration = np.array(self.df_5)[:, 23]
+        cumdist = np.array(self.df_5)[:, 24]
         
         fuel_count = collections.Counter(fueltype)
         vehi_count = collections.Counter(vehitype)
@@ -138,7 +129,7 @@ class CarbonEmission(object):
         return carbon
     
     
-    def SA2Population(self, ):
+    def SA2Population(self):
         
         ''' The population of all SA2. '''
         
@@ -148,19 +139,19 @@ class CarbonEmission(object):
         return sa2_sex
     
     
-    def SA2Info(self, ):
+    def SA2Info(self):
         
         ''' Get SA2 information from the database file. '''
         
         sa2 = dbfread.DBF('data\\1270055001_sa2_2016_aust_shape\\SA2_2016_AUST.dbf', encoding='GBK')
         df = pd.DataFrame(iter(sa2))
         
-        sa2_main = np.array(df)[:, 0].astype(int)
+        self.sa2_main = np.array(df)[:, 0].astype(int)
            
-        return sa2_main
+        return None
     
     
-    def TripNumber(self, df_1, df_5, sa2_main):
+    def TripNumber(self):
         
         ''' 
         Number of daily trips in SA2 j. 
@@ -169,12 +160,13 @@ class CarbonEmission(object):
         '''
         
         # Household ID, household size, and SA1 ID (length: 15543)
-        hhid_1 = np.array(df_1)[:, 0].astype(int)
-        hhsize = np.array(df_1)[:, 1].astype(int)
-        sa1_id = np.array(df_1)[:, 13]
+        sa2_main = self.sa2_main
+        hhid_1 = np.array(self.df_1)[:, 0].astype(int)
+        hhsize = np.array(self.df_1)[:, 1].astype(int)
+        sa1_id = np.array(self.df_1)[:, 13]
         sa2_id = (sa1_id/1e2).astype(int)
         # Household ID (length: 104024)
-        hhid_5 = np.array(df_5)[:, 1].astype(int)
+        hhid_5 = np.array(self.df_5)[:, 1].astype(int)
         
         sa2_array = []
         counter = 0
@@ -185,8 +177,7 @@ class CarbonEmission(object):
             index = np.argwhere(hhid_1 == i)
             sa2_array.append(sa2_id[index[0, 0]])
             counter += 1
-            print("Matching the %d trip, 104024 in total" % counter)
-        
+            
         # The length of trip_num is 275
         trip_num = dict(collections.Counter(sa2_array))
         
@@ -206,10 +197,11 @@ class CarbonEmission(object):
         return sa2_array, trip_num_sa2, NT
     
     
-    def ModeProportion(self, sa2_array, trip_num_sa2, sa2_main, mode_id):
+    def ModeProportion(self, sa2_array, trip_num_sa2, mode_id):
         
         ''' Compute the travel mode proportion of each SA2 region. '''
         
+        sa2_main = self.sa2_main
         mode_cnt = np.zeros((len(sa2_main), 4), dtype = int)
         trip_num_sa2 = np.array(trip_num_sa2).reshape((len(trip_num_sa2), 1))
         
@@ -225,19 +217,21 @@ class CarbonEmission(object):
         return mode_cnt, mode_prop
     
     
-    def AverDistance(self, df_5, sa2_array, sa2_main, mode_id, mode_cnt):
+    def AverDistance(self, sa2_array, mode_id, mode_cnt):
         
         ''' Average distance when using mode i in SA2 region j. '''
         
+        sa2_main = self.sa2_main
         total_dist = np.zeros(mode_cnt.shape)
         
-        cumdist = np.array(df_5)[:, 24]
+        cumdist = np.array(self.df_5)[:, 24]
         for i in range(len(mode_id)):
             row_idx = np.argwhere(sa2_main == sa2_array[i])
             col_idx = mode_id[i]
             total_dist[row_idx, col_idx] += cumdist[i]
         
         ave_dist = np.divide(total_dist, mode_cnt, where=mode_cnt!=0)
+        self.ave_dist_tot = np.sum(total_dist[:, 3]) / np.sum(mode_cnt[:, 3])
         
         return ave_dist
     
@@ -255,11 +249,11 @@ class CarbonEmission(object):
         ppl_day = 421347.3333333333
         tot_dist = 4548033.226433979
         
-        are_bus_dist = ave_dist[:, 3]
-        are_bus_dist = np.argwhere(are_bus_dist)
-        mean_dist = np.mean(are_bus_dist)
-        
-        total_ppl_dist = ppl_day * mean_dist
+        ave_bus_dist = ave_dist[:, 3]
+        total_dist = 0
+        cnt = 0
+                
+        total_ppl_dist = ppl_day * self.ave_dist_tot
         print(total_ppl_dist / tot_dist)
         
         result = 14.821164013245179
@@ -272,17 +266,14 @@ if __name__ == "__main__":
     
     carbon = CarbonEmission()
     
-    conn = carbon.ReadDatabase()
-    df_1 = carbon.ReadTable(conn, '1_QTS_HOUSEHOLDS')
-    df_3 = carbon.ReadTable(conn, '3_QTS_VEHICLES')
-    df_5 = carbon.ReadTable(conn, '5_QTS_TRIPS')
-    pop = carbon.SA2Population()
-    sa2_main = carbon.SA2Info()
-    carbon.TimePerKilo(df_3, df_5)
-    sa2_array, trip_num_sa2, NT = carbon.TripNumber(df_1, df_5, sa2_main)
     
-    mode_id = carbon.ModeChoice(df_5)
-    mode_cnt, mode_prop = carbon.ModeProportion(sa2_array, trip_num_sa2, sa2_main, mode_id)
-    ave_dist = carbon.AverDistance(df_5, sa2_array, sa2_main, mode_id, mode_cnt)
+    pop = carbon.SA2Population()
+    carbon.SA2Info()
+    carbon.TimePerKilo()
+    sa2_array, trip_num_sa2, NT = carbon.TripNumber()
+    
+    mode_id = carbon.ModeChoice()
+    mode_cnt, mode_prop = carbon.ModeProportion(sa2_array, trip_num_sa2, mode_id)
+    ave_dist = carbon.AverDistance(sa2_array, mode_id, mode_cnt)
     BLF = carbon.BusLoadFactor(ave_dist)
     

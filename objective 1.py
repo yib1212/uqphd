@@ -137,12 +137,12 @@ class CarbonEmission(object):
         print("Mode share of public transport: %.2f%%"  % prop_pub)
         print("Mode share of ride share: %.2f%%"        % prop_shr)
         
-        self.num_pub_det = num_pub
+        self.num_pub_trip = num_pub
         
         return None
         
         
-    def TimePerKilo(self):
+    def TimePerKilo(self, mode_id):
         
         ''' Compute the time used per kilometer of each trip. '''
         
@@ -157,8 +157,23 @@ class CarbonEmission(object):
         vehi_count = collections.Counter(vehitype)
         
         time_per_kilo = np.divide(duration, cumdist, out=np.zeros_like(duration), where=cumdist!=0)
-        print(fuel_count)
-        print(vehi_count)
+        print(time_per_kilo)
+        
+        #######################################################################
+        total_dist = np.zeros((4, 1))
+        total_duration = np.zeros((4, 1))
+        mode_count = collections.Counter(mode_id)
+        print(mode_count)
+        
+        for i in range(len(mode_id)):
+            idx = mode_id[i]
+            total_dist[idx][0] += cumdist[i]
+            total_duration[idx][0] += duration[i]
+            
+        ave_act_dist = total_dist[1][0] / 10716 # 1.3441946621873895
+        
+        print(total_duration / total_dist)
+        print(total_dist[1][0] / 10716)
         
         
     def CarbonGenerate(self):
@@ -271,17 +286,21 @@ class CarbonEmission(object):
         ''' Average distance when using mode i in SA2 region j. '''
         
         sa2_main = self.sa2_main
+        all_mode = np.array(self.df_5)[:, 13:21]
         total_dist = np.zeros(mode_cnt.shape)
+        num_act_trip = 0
         
         cumdist = np.array(self.df_5)[:, 24]
         for i in range(len(mode_id)):
             row_idx = np.argwhere(sa2_main == sa2_array[i])
             col_idx = mode_id[i]
             total_dist[row_idx, col_idx] += cumdist[i]
-        
+            if mode_id[i] == 3:
+                num_act_trip += np.sum(all_mode[i] == 'Walking')
+                
         ave_dist = np.divide(total_dist, mode_cnt, where=mode_cnt!=0)
-        # Average distance by public transport of the entire region: 19.789 km
-        self.ave_dist_tot = np.sum(total_dist[:, 3]) / self.num_pub_det
+        # Average distance by public transport of the entire region: 18.076 km
+        self.ave_dist_tot = (np.sum(total_dist[:, 3]) - num_act_trip * 1.344) / self.num_pub_trip
         
         return ave_dist
     
@@ -303,7 +322,7 @@ class CarbonEmission(object):
         print(self.ave_dist_tot)
         print(total_ppl_dist / tot_dist)
         
-        result = 4.161895802711924
+        result = 3.4551036734092673
         
         return None
     
@@ -316,10 +335,11 @@ if __name__ == "__main__":
     
     pop = carbon.SA2Population()
     carbon.SA2Info()
-    carbon.TimePerKilo()
+    
     sa2_array, trip_num_sa2, NT = carbon.TripNumber()
     
     mode_id = carbon.ModeChoice()
+    carbon.TimePerKilo(mode_id)
     carbon.MultiModeChoice()
     mode_cnt, mode_prop = carbon.ModeProportion(sa2_array, trip_num_sa2, mode_id)
     ave_dist = carbon.AverDistance(sa2_array, mode_id, mode_cnt)

@@ -37,7 +37,7 @@ class CarbonEmission(object):
     
     def ModeChoice(self):
         
-        ''' Compute the proportion of transport mode share of the SEQ. '''
+        ''' Compute the proportion of main transport mode share of the SEQ. '''
         
         mainmode = np.array(self.df_5)[:, 12]
         
@@ -91,6 +91,55 @@ class CarbonEmission(object):
                 mode_id.append(3) # Public transport'
         
         return mode_id
+    
+    
+    def MultiModeChoice(self):
+        
+        ''' Count the proportion of detailed transport mode share of the SEQ. '''
+        
+        all_mode = np.array(self.df_5)[:, 13:21]
+        num_pri = 0
+        num_act = 0
+        num_pub = 0
+        num_shr = 0
+        
+        for i in range(all_mode.shape[1]):
+            data_count = collections.Counter(all_mode[:, i])
+            num_pri += data_count['Car driver'] \
+                    + data_count['Car passenger'] \
+                    + data_count['Truck driver'] \
+                    + data_count['Motorcycle driver'] \
+                    + data_count['Motorcycle passenger']
+            num_act += data_count['Walking'] \
+                    + data_count['Bicycle']
+            num_pub += data_count['Train'] \
+                    + data_count['Ferry'] \
+                    + data_count['Light rail'] \
+                    + data_count['Mobility scooter'] \
+                    + data_count['Public bus'] \
+                    + data_count['Public Bus'] \
+                    + data_count['School bus (with route number)'] \
+                    + data_count['School bus (private/chartered)'] \
+                    + data_count['Charter/Courtesy/Other bus'] \
+                    + data_count['Other method']
+            num_shr += data_count['Taxi'] \
+                    + data_count['Uber / Other Ride Share']
+                    
+        total = num_pri + num_act + num_pub + num_shr
+        
+        prop_pri = num_pri / total * 100
+        prop_act = num_act / total * 100
+        prop_pub = num_pub / total * 100
+        prop_shr = num_shr / total * 100
+                
+        print("Mode share of pirvate vehicle: %.2f%%"   % prop_pri)
+        print("Mode share of ativate transport: %.2f%%" % prop_act)
+        print("Mode share of public transport: %.2f%%"  % prop_pub)
+        print("Mode share of ride share: %.2f%%"        % prop_shr)
+        
+        self.num_pub_det = num_pub
+        
+        return None
         
         
     def TimePerKilo(self):
@@ -231,8 +280,8 @@ class CarbonEmission(object):
             total_dist[row_idx, col_idx] += cumdist[i]
         
         ave_dist = np.divide(total_dist, mode_cnt, where=mode_cnt!=0)
-        # Average distance by public transport of the entire region: 23.837 km
-        self.ave_dist_tot = np.sum(total_dist[:, 3]) / np.sum(mode_cnt[:, 3])
+        # Average distance by public transport of the entire region: 19.789 km
+        self.ave_dist_tot = np.sum(total_dist[:, 3]) / self.num_pub_det
         
         return ave_dist
     
@@ -271,7 +320,9 @@ if __name__ == "__main__":
     sa2_array, trip_num_sa2, NT = carbon.TripNumber()
     
     mode_id = carbon.ModeChoice()
+    carbon.MultiModeChoice()
     mode_cnt, mode_prop = carbon.ModeProportion(sa2_array, trip_num_sa2, mode_id)
     ave_dist = carbon.AverDistance(sa2_array, mode_id, mode_cnt)
     BLF = carbon.BusLoadFactor()
+    
     

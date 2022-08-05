@@ -344,5 +344,7 @@ if __name__ == "__main__":
     mode_cnt, mode_prop = carbon.ModeProportion(sa2_array, trip_num_sa2, mode_id)
     ave_dist = carbon.AverDistance(sa2_array, mode_id, mode_cnt)
     BLF = carbon.BusLoadFactor()
+
+    # GoCard or go ahead for private vehicle LF
     
     

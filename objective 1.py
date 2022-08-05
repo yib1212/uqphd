@@ -322,7 +322,7 @@ class CarbonEmission(object):
         print(self.ave_dist_tot)
         print(total_ppl_dist / tot_dist)
         
-        result = 3.4551036734092673
+        result = 3.1560562778093737
         
         return None
     

@@ -78,9 +78,13 @@ class BusRoute(object):
         df = pd.read_csv('data\\bus_trip_number_flag.csv', header=None)
         num_trips = np.array(df)[1:, :].astype(int)
         tot_dist = 0
+        tot_num = 0
         for i in range(num_trips.shape[0]):
             if num_trips[i][3] == 1:
                 tot_dist += (num_trips[i][1] + num_trips[i][2]) * dis_trips[i]
+                tot_num += num_trips[i][1] + num_trips[i][2]
+                
+        print(tot_num)
         
         return tot_dist
             

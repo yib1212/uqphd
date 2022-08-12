@@ -7,6 +7,8 @@ Created on Mon Aug 01 14:12:31 2022
 
 import numpy as np
 import pandas as pd
+import pyodbc
+import collections
 
 
 class BusRoute(object):
@@ -28,6 +30,16 @@ class BusRoute(object):
         self.service_id = np.array(Trips)[1:, 1]
         self.dir_id = np.array(Trips)[1:, 4]
         self.weekday = np.array(Calendar)[1:, 0:6] # 167
+        
+        # Database location
+        conn_str = (r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};'
+                    r'DBQ=data\Travel Survey\2018-21_pooled_seq_qts_erv1.0.accdb;')
+        
+        conn = pyodbc.connect(conn_str)
+                    
+        self.df_1 = pd.read_sql(f'select * from 1_QTS_HOUSEHOLDS', conn)
+        self.df_3 = pd.read_sql(f'select * from 3_QTS_VEHICLES', conn)
+        self.df_5 = pd.read_sql(f'select * from 5_QTS_TRIPS', conn)
         
         
     def TripsNumber(self):
@@ -87,6 +99,25 @@ class BusRoute(object):
         print(tot_num)
         
         return tot_dist
+    
+    
+    def PriVehLoadFactor(self):
+        
+        ''' Compute the private vehicle loading factor. '''
+        
+        all_mode = np.array(self.df_5)[:, 13:21]
+        driver_cnt = 0
+        passenger_cnt = 0
+        
+        for i in range(8):
+            role_count = collections.Counter(all_mode[:, i])
+            driver_cnt += role_count['Car driver']
+            passenger_cnt += role_count['Car passenger']
+        
+        pv_lf = (driver_cnt + passenger_cnt) / driver_cnt
+        pvlf_result = 1.4071246006389777
+        
+        return pv_lf
             
         
         
@@ -96,6 +127,6 @@ if __name__ == "__main__":
     num_trips = b.TripsNumber()
     dis_trips = b.TripsDistance()
     tot_dist = b.TotalDistance(dis_trips)
-    print(tot_dist)
+    mode = b.PriVehLoadFactor()
     
     result_bus = 12066198846.531265

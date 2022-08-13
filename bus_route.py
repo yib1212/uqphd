@@ -108,16 +108,23 @@ class BusRoute(object):
         all_mode = np.array(self.df_5)[:, 13:21]
         driver_cnt = 0
         passenger_cnt = 0
+        motordriver_cnt = 0
+        motorpass_cnt = 0
         
         for i in range(8):
             role_count = collections.Counter(all_mode[:, i])
             driver_cnt += role_count['Car driver']
             passenger_cnt += role_count['Car passenger']
+            motordriver_cnt += role_count['Motorcycle driver']
+            motorpass_cnt += role_count['Motorcycle passenger']
+                    
+        car_lf = (driver_cnt + passenger_cnt) / driver_cnt
+        motor_lf = (motordriver_cnt + motorpass_cnt) / motordriver_cnt
         
-        pv_lf = (driver_cnt + passenger_cnt) / driver_cnt
-        pvlf_result = 1.4071246006389777
+        car_lf_result = 1.4071246006389777
+        motor_lf_result = 1.0505050505050506
         
-        return pv_lf
+        return car_lf, motor_lf
             
         
         
@@ -127,6 +134,6 @@ if __name__ == "__main__":
     num_trips = b.TripsNumber()
     dis_trips = b.TripsDistance()
     tot_dist = b.TotalDistance(dis_trips)
-    mode = b.PriVehLoadFactor()
+    car_lf, motor_lf = b.PriVehLoadFactor()
     
     result_bus = 12066198846.531265

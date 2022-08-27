@@ -73,6 +73,8 @@ class CarbonEachTrip(object):
         self.df_3 = pd.read_sql(f'select * from 3_QTS_VEHICLES', conn)
         self.df_5 = pd.read_sql(f'select * from 5_QTS_TRIPS', conn)
         
+        self.font = {'size': 10}
+        
         return None
     
     
@@ -140,28 +142,167 @@ class CarbonEachTrip(object):
         
         cum_dist = np.array(self.df_5)[:, 24]
         carbon_emi = []
+        car_list = []
         
         for i in range(len(mode_id)):
             if mode_id[i] == 0 or mode_id[i] == 2:
                 carbon_emi.append(cum_dist[i] * self.car_ave)
+                car_list.append(cum_dist[i] * self.car_ave)
             elif mode_id[i] == 3:
                 carbon_emi.append(cum_dist[i] * self.bus_ave)
             else:
                 carbon_emi.append(0)
                 
-        carbon_emi = np.round(np.array(carbon_emi), 2)
+        #carbon_emi = np.round(np.array(carbon_emi), 2)
         
-        return carbon_emi
+        return carbon_emi, car_list
     
     
-    def BasicAnalysis(self, carbon_emi):
+    def Histogram(self, carbon_emi):
+        
+        ''' Do some basic statistical analysis. '''
+        
+        for index, value in enumerate(carbon_emi):
+            if value > 15000:
+                carbon_emi[index] = 15000
+        
+        d = 10
+        min_bound = int(min(carbon_emi))
+        max_bound = int(max(carbon_emi))
+        num_bins = (max_bound - min_bound) // d
+        
+        plt.hist(carbon_emi, num_bins)
+        plt.title('Carbon emission of each trip by passenger car', self.font)
+        plt.xlabel('Carbon emissions (g)', self.font)
+        plt.ylabel('Number of trips', self.font)
+                
+        plt.show()
+        
+        return None
+    
+    
+    def TravelPurpose(self, carbon_emi):
+        
+        ''' Explore the relationship between emissions and travel purpose. '''
+        
+        for index, value in enumerate(carbon_emi):
+            if value > 15000:
+                carbon_emi[index] = 15000
+        
+        d = 10
+        min_bound = int(min(carbon_emi))
+        max_bound = int(max(carbon_emi))
+        num_bins = (max_bound - min_bound) // d
+                        
+        purpose = np.array(self.df_5)[:, 25]
+        # purpose_count = collections.Counter(purpose)
+        # print(purpose_count)
+        # purpose = list(purpose)
+        # print(len(purpose))
+        # print(len(carbon_emi))
+        
+        commute = []
+        shopping = []
+        pickup = []
+        recreation = []
+        education = []
+        business = []
+        accompany = []
+        work = []
+        social = []
+        deliver = []
+        other = []
+        
+        for index, value in enumerate(purpose):
+            if value == 'Direct Work Commute':
+                commute.append(carbon_emi[index])
+            elif value == 'Shopping':
+                shopping.append(carbon_emi[index])
+            elif value == 'Pickup/Dropoff Someone':
+                pickup.append(carbon_emi[index])
+            elif value == 'Recreation':
+                recreation.append(carbon_emi[index])
+            elif value == 'Education':
+                education.append(carbon_emi[index])
+            elif value == 'Personal Business':
+                business.append(carbon_emi[index])
+            elif value == 'Accompany Someone':
+                accompany.append(carbon_emi[index])
+            elif value == 'Work Related':
+                work.append(carbon_emi[index])
+            elif value == 'Social':
+                social.append(carbon_emi[index])
+            elif value == 'Pickup/Deliver Something':
+                deliver.append(carbon_emi[index])
+            else:
+                other.append(carbon_emi[index])
+        
+        plt.figure(figsize=(10, 20))
+        
+        ax1=plt.subplot(5,2,1)
+        plt.axis([0, 15000, 0, 100])
+        plt.hist(commute, num_bins)
+        plt.title('Carbon emission of each trip: direct work commute', self.font)
+        
+        ax2=plt.subplot(5,2,2)
+        plt.axis([0, 15000, 0, 250])
+        plt.hist(shopping, num_bins)
+        plt.title('Carbon emission of each trip: shopping', self.font)
+        
+        ax3=plt.subplot(5,2,3)
+        plt.axis([0, 15000, 0, 250])
+        plt.hist(pickup, num_bins)
+        plt.title('Carbon emission of each trip: pickup', self.font)
+                
+        ax4=plt.subplot(5,2,4)
+        plt.axis([0, 15000, 0, 100])
+        plt.hist(recreation, num_bins)
+        plt.title('Carbon emission of each trip: recreation', self.font)
+        
+        ax5=plt.subplot(5,2,5)
+        plt.axis([0, 15000, 0, 150])
+        plt.hist(education, num_bins)
+        plt.title('Carbon emission of each trip: education', self.font)
+        plt.ylabel('Number of trips', self.font)
+        
+        ax6=plt.subplot(5,2,6)
+        plt.axis([0, 15000, 0, 100])
+        plt.hist(business, num_bins)
+        plt.title('Carbon emission of each trip: personal business', self.font)
+        
+        ax7=plt.subplot(5,2,7)
+        plt.axis([0, 15000, 0, 100])
+        plt.hist(accompany, num_bins)
+        plt.title('Carbon emission of each trip: accompany', self.font)
+        
+        ax8=plt.subplot(5,2,8)
+        plt.axis([0, 15000, 0, 40])
+        plt.hist(work, num_bins)
+        plt.title('Carbon emission of each trip: work related', self.font)
+        
+        ax9=plt.subplot(5,2,9)
+        plt.axis([0, 15000, 0, 40])
+        plt.hist(social, num_bins)
+        plt.title('Carbon emission of each trip: social', self.font)
+        plt.xlabel('Carbon emissions (g)', self.font)
+        
+        ax10=plt.subplot(5,2,10)
+        plt.axis([0, 15000, 0, 30])
+        plt.hist(deliver, num_bins)
+        plt.title('Carbon emission of each trip: deliver', self.font)
+        plt.xlabel('Carbon emissions (g)', self.font)
         
         
+        plt.show()
+        
+        return None
         
         
 if __name__ == "__main__":
     
     emission = CarbonEachTrip()
     mode_id = emission.ModeChoice()
-    carbon_emi = emission.TripEmission(mode_id)
+    carbon_emi, car_list = emission.TripEmission(mode_id)
+    emission.Histogram(car_list)
+    emission.TravelPurpose(carbon_emi)
     

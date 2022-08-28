@@ -9,6 +9,7 @@ import pyodbc
 import numpy as np
 import pandas as pd
 import collections
+from objective_1 import CarbonEmission
 
 import matplotlib.pyplot as plt
 
@@ -58,7 +59,6 @@ class CarbonEachTrip(object):
         self.car_ave = 152.3
         self.bus_ave = 100.2
         
-        
         # Database location
         conn_str = (r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};'
                     r'DBQ=data\Travel Survey\2018-21_pooled_seq_qts_erv1.0.accdb;')
@@ -75,71 +75,18 @@ class CarbonEachTrip(object):
         
         self.font = {'size': 10}
         
+        self.sa2_array = CarbonEmission.SA2Info(self)
+        self.mode_id = CarbonEmission.ModeChoice(self)
+        self.sa2_array, _, _ = CarbonEmission.TripNumber(self)
+        
         return None
+
     
-    
-    def ModeChoice(self):
-        
-        ''' Compute the proportion of main transport mode share of the SEQ. '''
-        
-        main_mode = np.array(self.df_5)[:, 12]
-        
-        total = np.size(main_mode)
-        data_count = collections.Counter(main_mode)
-        
-        num_pri = data_count['Car driver'] \
-                + data_count['Car passenger'] \
-                + data_count['Truck driver'] \
-                + data_count['Motorcycle driver'] \
-                + data_count['Motorcycle passenger']
-        num_act = data_count['Walking'] \
-                + data_count['Bicycle']
-        num_pub = data_count['Train'] \
-                + data_count['Ferry'] \
-                + data_count['Light rail'] \
-                + data_count['Mobility scooter'] \
-                + data_count['Public bus'] \
-                + data_count['Public Bus'] \
-                + data_count['School bus (with route number)'] \
-                + data_count['School bus (private/chartered)'] \
-                + data_count['Charter/Courtesy/Other bus'] \
-                + data_count['Other method']
-        num_shr = data_count['Taxi'] \
-                + data_count['Uber / Other Ride Share']
-        
-        prop_pri = num_pri / total * 100
-        prop_act = num_act / total * 100
-        prop_pub = num_pub / total * 100
-        prop_shr = num_shr / total * 100
-                
-        print("Mode share of pirvate vehicle: %.2f%%"   % prop_pri)
-        print("Mode share of ativate transport: %.2f%%" % prop_act)
-        print("Mode share of public transport: %.2f%%"  % prop_pub)
-        print("Mode share of ride share: %.2f%%"        % prop_shr)
-        
-        # Assign four modes to all the trips
-        mode_id = [] # Length: 104,024
-        for i in main_mode:
-            if   i == 'Car driver' or \
-                 i == 'Car passenger' or \
-                 i == 'Truck driver' or \
-                 i == 'Motorcycle driver' or \
-                 i == 'Motorcycle passenger':
-                mode_id.append(0) # Private vehicle
-            elif i == 'Walking' or i == 'Bicycle':
-                mode_id.append(1) # Active transport
-            elif i == 'Taxi' or i == 'Uber / Other Ride Share':
-                mode_id.append(2) # Taxi or rideshare
-            else:
-                mode_id.append(3) # Public transport'
-                
-        return mode_id
-    
-    
-    def TripEmission(self, mode_id):
+    def TripEmission(self):
         
         ''' Compute the carbon emission for each trip. '''
         
+        mode_id = self.mode_id
         cum_dist = np.array(self.df_5)[:, 24]
         carbon_emi = []
         car_list = []
@@ -155,30 +102,57 @@ class CarbonEachTrip(object):
                 
         #carbon_emi = np.round(np.array(carbon_emi), 2)
         
-        return carbon_emi, car_list
-    
-    
-    def Histogram(self, carbon_emi):
+        hist_emi = carbon_emi
         
-        ''' Do some basic statistical analysis. '''
-        
-        for index, value in enumerate(carbon_emi):
+        for index, value in enumerate(hist_emi):
             if value > 15000:
-                carbon_emi[index] = 15000
+                hist_emi[index] = 15000
         
         d = 10
-        min_bound = int(min(carbon_emi))
-        max_bound = int(max(carbon_emi))
+        min_bound = int(min(hist_emi))
+        max_bound = int(max(hist_emi))
         num_bins = (max_bound - min_bound) // d
         
-        plt.hist(carbon_emi, num_bins)
-        plt.title('Carbon emission of each trip by passenger car', self.font)
+        plt.hist(hist_emi, num_bins)
+        plt.title('Carbon emission of each trip by motor vehicle', self.font)
         plt.xlabel('Carbon emissions (g)', self.font)
         plt.ylabel('Number of trips', self.font)
                 
         plt.show()
         
-        return None
+        return carbon_emi, car_list
+    
+    
+    def RegionTime(self, carbon_emi):
+        
+        ''' Explore the relationship between SA2 region, average emission, and travel time. '''
+        
+        sa2_main = self.sa2_main
+        sa2_array = self.sa2_array
+        trav_time = np.array(self.df_5)[:, 23]
+        
+        time_sum = np.zeros(len(sa2_main))
+        emi_sum = np.zeros(len(sa2_main))
+        num_cnt = np.zeros(len(sa2_main), dtype = int)
+        
+        for i in range(len(sa2_array)):
+            idx = np.argwhere(sa2_main == sa2_array[i])
+            time_sum[idx] += trav_time[i]
+            emi_sum[idx] += carbon_emi[i]
+            num_cnt[idx] += 1
+        
+        time_ave = np.divide(time_sum, num_cnt, where=num_cnt!=0)
+        emi_ave = np.divide(emi_sum, num_cnt, where=num_cnt!=0)
+        print(num_cnt)
+        
+        plt.axis([0, 40, 0, 5000])
+        plt.title('Average carbon emission and travel time of different SA2 regions', self.font)
+        plt.xlabel('Average travel time (min)', self.font)
+        plt.ylabel('Average carbon emission (g)', self.font)
+        plt.scatter(time_ave, emi_ave, s=10, c='red')
+        plt.show()
+        
+        return time_ave, emi_ave
     
     
     def TravelPurpose(self, carbon_emi):
@@ -196,10 +170,7 @@ class CarbonEachTrip(object):
                         
         purpose = np.array(self.df_5)[:, 25]
         # purpose_count = collections.Counter(purpose)
-        # print(purpose_count)
-        # purpose = list(purpose)
-        # print(len(purpose))
-        # print(len(carbon_emi))
+        
         
         commute = []
         shopping = []
@@ -292,7 +263,6 @@ class CarbonEachTrip(object):
         plt.title('Carbon emission of each trip: deliver', self.font)
         plt.xlabel('Carbon emissions (g)', self.font)
         
-        
         plt.show()
         
         return None
@@ -301,8 +271,6 @@ class CarbonEachTrip(object):
 if __name__ == "__main__":
     
     emission = CarbonEachTrip()
-    mode_id = emission.ModeChoice()
-    carbon_emi, car_list = emission.TripEmission(mode_id)
-    emission.Histogram(car_list)
+    carbon_emi, car_list = emission.TripEmission()
     emission.TravelPurpose(carbon_emi)
-    
+    time_ave, emi_ave = emission.RegionTime(carbon_emi)

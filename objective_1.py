@@ -210,9 +210,10 @@ class CarbonEmission(object):
         sa2 = dbfread.DBF('data\\1270055001_sa2_2016_aust_shape\\SA2_2016_AUST.dbf', encoding='GBK')
         df = pd.DataFrame(iter(sa2))
         
-        self.sa2_main = np.array(df)[:, 0].astype(int)
-           
-        return self.sa2_main
+        sa2_main = np.array(df)[:, 0].astype(int)
+        self.sa2_main = sa2_main
+        
+        return sa2_main
     
     
     def TripNumber(self):

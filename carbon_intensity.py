@@ -131,6 +131,13 @@ class CarbonEachTrip(object):
         sa2_array = self.sa2_array
         trav_time = np.array(self.df_5)[:, 23]
         
+        plt.axis([0, 180, 0, 15000])
+        plt.title('Carbon emission and travel time of each trip', self.font)
+        plt.xlabel('Travel time (min)', self.font)
+        plt.ylabel('Carbon emission (g)', self.font)
+        plt.scatter(trav_time, carbon_emi, s=1, c='red')
+        plt.show()
+        
         time_sum = np.zeros(len(sa2_main))
         emi_sum = np.zeros(len(sa2_main))
         num_cnt = np.zeros(len(sa2_main), dtype = int)

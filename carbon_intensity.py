@@ -194,85 +194,8 @@ class CarbonEachTrip(object):
         plt.scatter(dict_sa2[dict_key][0], dict_sa2[dict_key][1], s=10, c='red')
         plt.show()
         
-        self.mean_1_EM = np.array([self.emi_ave[0],  self.time_ave[0]])
-        self.sigma_1_EM = np.mat([[10000, 0], [0, 100]])
-        self.tao = [1]
-        self.prob_xi = [0]
-        
-        self.x = dict_sa2[dict_key][0]
-        self.y = dict_sa2[dict_key][1]
-        self.num_points = len(dict_sa2[dict_key][0])    
-        
         return None
     
-    
-    def EM_algorithm(self, num_iter):
-        
-        E = []
-        M = []
-        cnt = []
-        mean_1_EM = self.mean_1_EM
-        sigma_1_EM = self.sigma_1_EM
-        tao = self.tao
-        prob_xi = self.prob_xi
-        num_points = self.num_points
-        x = self.x
-        y = self.y
-        
-        # print(mean_1_EM)
-        
-        for iteration in range(num_iter):
-            
-            print(iteration)
-            cnt.append(iteration)
-            
-            sum_of_Tx1 = np.array([0., 0.])
-            sum_of_cov1 = np.mat([[0., 0.], [0., 0.]])
-            
-            T_1i = np.zeros(num_points)
-            
-            log_like_E = 0
-            log_like_M = 0
-            
-            ''' E Step '''
-            
-            for i in range(num_points):
-                
-                prob_xi[0] = multivariate_normal(mean=mean_1_EM,cov=sigma_1_EM).pdf([x[i],y[i]])
-                print(prob_xi[0])
-                T_1i[i] = (prob_xi[0]*tao[0])/np.dot(np.array(prob_xi), np.array(tao))
-            
-            tao = [sum(T_1i)/num_points]
-            
-            for i in range(num_points):
-                
-                prob_xi[0] = multivariate_normal(mean=mean_1_EM,cov=sigma_1_EM).pdf([x[i],y[i]])
-                log_like_E -= np.log(np.dot(np.array(prob_xi), np.array(tao)))
-            
-            E.append(log_like_E/num_points)
-            
-            ''' M Step '''
-            
-            for i in range(num_points):
-                
-                sum_of_Tx1 += [T_1i[i]*x[i], T_1i[i]*y[i]]
-                sum_of_cov1 += T_1i[i] * np.mat([[x[i]-mean_1_EM[0]],[y[i]-mean_1_EM[1]]])*np.mat([[x[i]-mean_1_EM[0]],[y[i]-mean_1_EM[1]]]).T
-                
-            mean_1_EM = sum_of_Tx1/sum(T_1i)
-            sigma_1_EM = sum_of_cov1/sum(T_1i)
-            
-            for i in range(num_points):
-                
-                prob_xi[0] = multivariate_normal(mean=mean_1_EM,cov=sigma_1_EM).pdf([x[i],y[i]])
-                log_like_M -= np.log(np.dot(np.array(prob_xi), np.array(tao)))
-            
-            M.append(log_like_M/num_points)
-            
-            
-            
-            
-        return None
-        
     
     def TravelPurpose(self, carbon_emi):
         
@@ -394,4 +317,3 @@ if __name__ == "__main__":
     # emission.TravelPurpose(carbon_emi)
     time_ave, emi_ave = emission.RegionTime(carbon_emi)
     emission.AlgorithmInit(carbon_emi)
-    emission.EM_algorithm(5)

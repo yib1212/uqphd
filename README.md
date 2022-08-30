@@ -12,3 +12,4 @@ pip install pyodbc
 pip install pandas
 pip install openpyxl
 pip install dbfread
+pip install statsmodels

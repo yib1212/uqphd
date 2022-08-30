@@ -10,8 +10,12 @@ import numpy as np
 import pandas as pd
 import collections
 from objective_1 import CarbonEmission
-from scipy.stats import multivariate_normal
-
+from scipy.stats import expon
+from scipy.stats import exponnorm
+from scipy.stats import skewnorm
+from scipy.optimize import curve_fit
+from scipy.special import factorial
+from scipy.stats import poisson
 import matplotlib.pyplot as plt
 
 class CarbonEachTrip(object):
@@ -81,6 +85,50 @@ class CarbonEachTrip(object):
         self.sa2_array, _, _ = CarbonEmission.TripNumber(self)
         
         return None
+    
+    
+    def fit_function(self, k, lamb):
+        
+        '''poisson function, parameter lamb is the fit parameter'''
+        
+        return poisson.pmf(k, lamb)
+    
+    
+    def TripDistance(self):
+        
+        cum_dist = np.array(self.df_5)[:, 24]
+                
+        d = 1
+        min_bound = int(min(cum_dist))
+        max_bound = int(max(cum_dist))
+        num_bins = (max_bound - min_bound) // d
+        
+        ''' Poisson distribution '''
+        # entries, bin_edges, _ = plt.hist(cum_pos_dist, num_bins)
+        # bin_middles = 0.5 * (bin_edges[1:] + bin_edges[:-1])
+        # parameters, cov_matrix = curve_fit(self.fit_function, bin_middles, entries)
+        # x = range(0, 110)
+        # y = self.fit_function(x, *parameters)
+        
+        # plt.axis([0, 110, 0, 15000])
+        # plt.plot(x, 93872*y, linestyle='-', c='red')
+        
+        '''Exponantial distribution '''
+        a, K = expon.fit(list(cum_dist))
+        x = range(110)
+        p = expon.pdf(x, a, K)
+        
+        plt.axis([0, 110, 0, 15000])
+        plt.plot(x, 93872*p, 'k', linewidth=2, c='red')
+        
+        plt.hist(cum_dist, num_bins)
+        plt.title('Travel distance of each trip', self.font)
+        plt.xlabel('Distance (km)', self.font)
+        plt.ylabel('Number of trips', self.font)
+        
+        plt.show()
+        
+        return None
 
     
     def TripEmission(self):
@@ -91,6 +139,8 @@ class CarbonEachTrip(object):
         cum_dist = np.array(self.df_5)[:, 24]
         carbon_emi = []
         car_list = []
+        bus_list = []
+        zero_cnt = 0
         
         for i in range(len(mode_id)):
             if mode_id[i] == 0 or mode_id[i] == 2:
@@ -98,9 +148,12 @@ class CarbonEachTrip(object):
                 car_list.append(cum_dist[i] * self.car_ave)
             elif mode_id[i] == 3:
                 carbon_emi.append(cum_dist[i] * self.bus_ave)
+                bus_list.append(cum_dist[i] * self.bus_ave)
             else:
                 carbon_emi.append(0)
-                
+                zero_cnt += 1
+        
+        print(len(mode_id) - zero_cnt)
         #carbon_emi = np.round(np.array(carbon_emi), 2)
         
         hist_emi = carbon_emi
@@ -109,19 +162,57 @@ class CarbonEachTrip(object):
             if value > 15000:
                 hist_emi[index] = 15000
         
-        d = 10
+        d = 5
         min_bound = int(min(hist_emi))
         max_bound = int(max(hist_emi))
         num_bins = (max_bound - min_bound) // d
         
-        plt.hist(hist_emi, num_bins)
+        plt.axis([0, 15000, 0, 800])
+        self.n, self.bins, _ = plt.hist(hist_emi, num_bins)
         plt.title('Carbon emission of each trip by motor vehicle', self.font)
         plt.xlabel('Carbon emissions (g)', self.font)
         plt.ylabel('Number of trips', self.font)
                 
         plt.show()
         
+        self.hist_emi = hist_emi
+        self.num_bins = num_bins
+        self.car_list = car_list
+        self.car_and_bus = car_list + bus_list
+        
         return carbon_emi, car_list
+    
+    
+    def ExponNormFitting(self):
+        
+        y = self.car_and_bus
+        x = range(15000)
+        
+        ae, loce, scalee = exponnorm.fit(y)
+        p = exponnorm.pdf(x, ae, loce, scalee)
+        
+        plt.axis([0, 15000, 0, 800])
+        plt.hist(self.hist_emi, self.num_bins)
+        plt.plot(x, 933080/2*p, 'k', linewidth=2, c='red')
+        plt.show()
+        
+        return None
+    
+    
+    def SkewNormFitting(self):
+        
+        y = self.car_list
+        x = range(15000)
+        
+        ae, loce, scalee = skewnorm.fit(y)
+        p = skewnorm.pdf(x, ae, loce, scalee)
+        
+        plt.axis([0, 15000, 0, 150])
+        plt.hist(self.hist_emi, self.num_bins)
+        plt.plot(x, 93308*p, 'k', linewidth=2, c='red')
+        plt.show()
+        
+        return None
     
     
     def RegionTime(self, carbon_emi):
@@ -151,7 +242,6 @@ class CarbonEachTrip(object):
         
         time_ave = np.divide(time_sum, num_cnt, where=num_cnt!=0)
         emi_ave = np.divide(emi_sum, num_cnt, where=num_cnt!=0)
-        print(num_cnt)
         
         plt.axis([0, 40, 0, 5000])
         plt.title('Average carbon emission and travel time of different SA2 regions', self.font)
@@ -313,7 +403,10 @@ class CarbonEachTrip(object):
 if __name__ == "__main__":
     
     emission = CarbonEachTrip()
-    carbon_emi, car_list = emission.TripEmission()
+    # carbon_emi, car_list = emission.TripEmission()
     # emission.TravelPurpose(carbon_emi)
-    time_ave, emi_ave = emission.RegionTime(carbon_emi)
-    emission.AlgorithmInit(carbon_emi)
+    # time_ave, emi_ave = emission.RegionTime(carbon_emi)
+    # emission.AlgorithmInit(carbon_emi)
+    # emission.SkewNormFitting()
+    # emission.ExponNormFitting()
+    emission.TripDistance()

@@ -94,7 +94,7 @@ class LevyFitting(object):
         para = levy.fit(y)
         
         p = levy.pdf(x, *para)
-        gau = skewnorm.pdf(x, a=10, loc=120, scale=3200)
+        gau = skewnorm.pdf(x, a=10, loc=240, scale=3000)
 
         
         for i in range(len(gau)):
@@ -107,13 +107,13 @@ class LevyFitting(object):
         plt.axis([0, 15000, 0, 800])
         self.n, bin_edges, _ = plt.hist(hist_emi, num_bins)
         plt.plot(x, 933080*p, 'k', linewidth=2, c='red')
-        plt.title('Carbon emission of each trip by motor vehicle', self.font)
-        plt.xlabel('Carbon emissions (g)', self.font)
-        plt.ylabel('Number of trips', self.font)
+        # plt.title('Carbon emission of each trip by motor vehicle', self.font)
+        # plt.xlabel('Carbon emissions (g)', self.font)
+        # plt.ylabel('Number of trips', self.font)
         plt.show()
         
         ''' Plot the skew normal weight '''
-        gau = skewnorm.pdf(x, a=8, loc=120, scale=3200)
+        # gau = skewnorm.pdf(x, a=8, loc=120, scale=3200)
         plt.plot(x, gau, 'k', linewidth=2, c='red')
         plt.show()
         
@@ -130,8 +130,6 @@ class LevyFitting(object):
         
         ''' Skewnorm fitting '''
         
-        bin_middles = bin_middles[ :700]
-        weight = weight[ :700]
         para = skewnorm.fit(weight, floc=120, fscale=3200)
         f_skew = skewnorm.pdf(bin_middles, *para)
         
@@ -142,11 +140,37 @@ class LevyFitting(object):
         print(para)
         print(f_skew)
         
+        return bin_middles, weight
+    
+    
+    def ProfileLikelihood(self, bin_middles, weight):
+        
+        ''' Fitting skew normal distribution '''
+        weight = (np.array(weight) * 10).astype(int)
+        weight[0] = 0
+        weight[-1] = 0
+        data = []
+        
+        for i in range(len(bin_middles)):
+            for j in range(weight[i]):
+                data.append(bin_middles[i])
+               
+        para_sn = skewnorm.fit(weight, f0=10, floc=120)
+        f_skew = skewnorm.pdf(bin_middles, *para_sn)
+        
+        print(para_sn)
+        print(f_skew)
+        
+        plt.axis([0, 15000, 0, 2e-4])
+        plt.plot(bin_middles, f_skew, 'k', linewidth=2, c='red')
+        plt.show()
+        
+        # print(data)
+        # print(len(data))
+        # print(weight)
         
         
-        
-        
-        return carbon_emi, car_list
+        return None
     
     
     def GaussianKernal(self, x):
@@ -172,4 +196,5 @@ class LevyFitting(object):
 if __name__ == "__main__":
     
     levy_fitting = LevyFitting()
-    carbon_emi, car_list = levy_fitting.TripEmission()
+    bin_middles, weight = levy_fitting.TripEmission()
+    levy_fitting.ProfileLikelihood(bin_middles, weight)

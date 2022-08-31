@@ -10,13 +10,18 @@ import numpy as np
 import pandas as pd
 import collections
 from objective_1 import CarbonEmission
+from scipy.stats import cauchy
 from scipy.stats import expon
 from scipy.stats import exponnorm
+from scipy.stats import levy
+from scipy.stats import powerlaw
 from scipy.stats import skewnorm
 from scipy.optimize import curve_fit
 from scipy.special import factorial
 from scipy.stats import poisson
 import matplotlib.pyplot as plt
+import statsmodels.api as sm
+
 
 class CarbonEachTrip(object):
     
@@ -104,7 +109,7 @@ class CarbonEachTrip(object):
         num_bins = (max_bound - min_bound) // d
         
         ''' Poisson distribution '''
-        # entries, bin_edges, _ = plt.hist(cum_pos_dist, num_bins)
+        # entries, bin_edges, _ = plt.hist(cum_dist, num_bins)
         # bin_middles = 0.5 * (bin_edges[1:] + bin_edges[:-1])
         # parameters, cov_matrix = curve_fit(self.fit_function, bin_middles, entries)
         # x = range(0, 110)
@@ -114,10 +119,23 @@ class CarbonEachTrip(object):
         # plt.plot(x, 93872*y, linestyle='-', c='red')
         
         '''Exponantial distribution '''
-        a, K = expon.fit(list(cum_dist))
-        x = range(110)
-        p = expon.pdf(x, a, K)
+        # a, K = expon.fit(cum_dist.tolist())
+        # x = range(110)
+        # p = expon.pdf(x, a, K)
         
+        ''' Powerlaw distribution '''
+        
+        # args, loc, scale = powerlaw.fit(cum_dist.tolist())
+        # print(args, loc, scale)
+        # x = range(110)
+        # p = powerlaw.pdf(x, args, loc, scale)
+
+        ''' Cauchy distribution '''
+        para = cauchy.fit(cum_dist.tolist())
+        x = range(110)
+        p = cauchy.pdf(x, *para)
+        
+                
         plt.axis([0, 110, 0, 15000])
         plt.plot(x, 93872*p, 'k', linewidth=2, c='red')
         
@@ -162,7 +180,7 @@ class CarbonEachTrip(object):
             if value > 15000:
                 hist_emi[index] = 15000
         
-        d = 5
+        d = 10
         min_bound = int(min(hist_emi))
         max_bound = int(max(hist_emi))
         num_bins = (max_bound - min_bound) // d
@@ -188,12 +206,21 @@ class CarbonEachTrip(object):
         y = self.car_and_bus
         x = range(15000)
         
-        ae, loce, scalee = exponnorm.fit(y)
-        p = exponnorm.pdf(x, ae, loce, scalee)
+        ''' Cauchy distribution '''
+        # para = cauchy.fit(y)
+        # p = cauchy.pdf(x, *para)
+        
+        ''' Exponantial Gaussian distribution '''
+        # ae, loce, scalee = exponnorm.fit(y)
+        # p = exponnorm.pdf(x, ae, loce, scalee)
+        
+        ''' Levy distribution '''
+        para = levy.fit(y)
+        p = levy.pdf(x, *para)
         
         plt.axis([0, 15000, 0, 800])
         plt.hist(self.hist_emi, self.num_bins)
-        plt.plot(x, 933080/2*p, 'k', linewidth=2, c='red')
+        plt.plot(x, 933080*p, 'k', linewidth=2, c='red')
         plt.show()
         
         return None
@@ -403,10 +430,10 @@ class CarbonEachTrip(object):
 if __name__ == "__main__":
     
     emission = CarbonEachTrip()
-    # carbon_emi, car_list = emission.TripEmission()
+    carbon_emi, car_list = emission.TripEmission()
     # emission.TravelPurpose(carbon_emi)
     # time_ave, emi_ave = emission.RegionTime(carbon_emi)
     # emission.AlgorithmInit(carbon_emi)
     # emission.SkewNormFitting()
-    # emission.ExponNormFitting()
-    emission.TripDistance()
+    emission.ExponNormFitting()
+    # emission.TripDistance()

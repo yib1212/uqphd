@@ -102,11 +102,18 @@ class CarbonEachTrip(object):
     def TripDistance(self):
         
         cum_dist = np.array(self.df_5)[:, 24]
+        dist_no_zero = [] 
+        cnt = 0
+        for i in range(len(cum_dist)):
+            if cum_dist[i] != 0:
+                dist_no_zero.append(cum_dist[i])
+                cnt += 1
+        print(cnt)
                 
-        d = 1
+        d = 0.2
         min_bound = int(min(cum_dist))
         max_bound = int(max(cum_dist))
-        num_bins = (max_bound - min_bound) // d
+        num_bins = int((max_bound - min_bound) // d)
         
         ''' Poisson distribution '''
         # entries, bin_edges, _ = plt.hist(cum_dist, num_bins)
@@ -118,26 +125,28 @@ class CarbonEachTrip(object):
         # plt.axis([0, 110, 0, 15000])
         # plt.plot(x, 93872*y, linestyle='-', c='red')
         
-        '''Exponantial distribution '''
-        # a, K = expon.fit(cum_dist.tolist())
+        '''Exponential distribution '''
+        # a, K = expon.fit(dist_no_zero)
         # x = range(110)
         # p = expon.pdf(x, a, K)
         
         ''' Powerlaw distribution '''
-        
-        # args, loc, scale = powerlaw.fit(cum_dist.tolist())
-        # print(args, loc, scale)
+        # para = powerlaw.fit(dist_no_zero)
         # x = range(110)
-        # p = powerlaw.pdf(x, args, loc, scale)
+        # p = powerlaw.pdf(x, *para)
 
         ''' Cauchy distribution '''
-        para = cauchy.fit(cum_dist.tolist())
-        x = range(110)
-        p = cauchy.pdf(x, *para)
+        # para = cauchy.fit(dist_no_zero)
+        # x = range(110)
+        # p = cauchy.pdf(x, *para)
         
-                
-        plt.axis([0, 110, 0, 15000])
-        plt.plot(x, 93872*p, 'k', linewidth=2, c='red')
+        ''' Levy distribution '''
+        # para = levy.fit(dist_no_zero)
+        # x = range(110)
+        # p = levy.pdf(x, *para)        
+        
+        plt.axis([0, 110, 0, 3500])
+        # plt.plot(x, cnt*d*p, 'k', linewidth=2, c='red')
         
         plt.hist(cum_dist, num_bins)
         plt.title('Travel distance of each trip', self.font)
@@ -435,5 +444,5 @@ if __name__ == "__main__":
     # time_ave, emi_ave = emission.RegionTime(carbon_emi)
     # emission.AlgorithmInit(carbon_emi)
     # emission.SkewNormFitting()
-    emission.ExponNormFitting()
-    # emission.TripDistance()
+    # emission.ExponNormFitting()
+    emission.TripDistance()

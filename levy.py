@@ -4,7 +4,7 @@ Created on Wed Aug 31 13:48:24 2022
 
 @author: Yibo Wang
 """
-
+import csv
 import math
 import pyodbc
 import numpy as np
@@ -13,6 +13,7 @@ from objective_1 import CarbonEmission
 from scipy.stats import levy
 from scipy.stats import norm
 from scipy.stats import skewnorm
+from sklearn import preprocessing
 import matplotlib.pyplot as plt
 
 class LevyFitting(object):
@@ -114,6 +115,7 @@ class LevyFitting(object):
         
         ''' Plot the skew normal weight '''
         # gau = skewnorm.pdf(x, a=8, loc=120, scale=3200)
+        plt.axis([0, 15000, 0, 3.5e-4])
         plt.plot(x, gau, 'k', linewidth=2, c='red')
         plt.show()
         
@@ -123,7 +125,10 @@ class LevyFitting(object):
         estimate = levy.pdf(bin_middles, *para)
         for i in range(len(self.n)):
             weight.append(self.n[i] / (estimate[i] * 933080))
-        plt.axis([0, 15000, 0, 2.5])
+            
+        weight = preprocessing.normalize([weight])[0]
+        
+        plt.axis([0, 15000, 0, 0.0035])
         plt.scatter(bin_middles, weight, s=10, c='red')
         plt.show()
         
@@ -139,6 +144,9 @@ class LevyFitting(object):
         
         print(para)
         print(f_skew)
+        
+        
+        print(weight)
         
         return bin_middles, weight
     
@@ -197,4 +205,11 @@ if __name__ == "__main__":
     
     levy_fitting = LevyFitting()
     bin_middles, weight = levy_fitting.TripEmission()
-    levy_fitting.ProfileLikelihood(bin_middles, weight)
+    # levy_fitting.ProfileLikelihood(bin_middles, weight)
+    with open('test.csv', 'w') as f:
+        # create the csv writer
+        writer = csv.writer(f)
+        # write a row to the csv file
+        writer.writerow(weight)
+        writer.writerow(bin_middles)
+    

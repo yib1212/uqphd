@@ -15,3 +15,5 @@ pip install dbfread
 pip install statsmodels
 
 Update Meeting on 02 September 2022
+
+Word count: 522

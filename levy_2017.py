@@ -33,12 +33,9 @@ class LevyFitting(object):
         self.bus_2019 = 97.03
         self.bus_2020 = 121.97
         
-        self.car_ave = 152.3
-        self.bus_ave = 100.2
-        
         # Database location
         conn_str = (r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};'
-                    r'DBQ=data\Travel Survey\2018-21_pooled_seq_qts_erv1.0.accdb;')
+                    r'DBQ=data\Travel Survey\2017-18.accdb;')
         
         conn = pyodbc.connect(conn_str)
         
@@ -52,9 +49,7 @@ class LevyFitting(object):
         
         self.font = {'size': 10}
         
-        self.sa2_array = CarbonEmission.SA2Info(self)
         self.mode_id = CarbonEmission.ModeChoice(self)
-        self.sa2_array, _, _ = CarbonEmission.TripNumber(self)
         
         return None
     
@@ -72,16 +67,16 @@ class LevyFitting(object):
         
         for i in range(len(mode_id)):
             if mode_id[i] == 0 or mode_id[i] == 2:
-                carbon_emi.append(cum_dist[i] * self.car_ave)
-                car_list.append(cum_dist[i] * self.car_ave)
+                carbon_emi.append(cum_dist[i] * self.car_2017)
+                car_list.append(cum_dist[i] * self.car_2017)
             elif mode_id[i] == 3:
-                carbon_emi.append(cum_dist[i] * self.bus_ave)
-                bus_list.append(cum_dist[i] * self.bus_ave)
+                carbon_emi.append(cum_dist[i] * self.bus_2017)
+                bus_list.append(cum_dist[i] * self.bus_2017)
             else:
                 carbon_emi.append(0)
                 zero_cnt += 1
         
-        print(len(mode_id) - zero_cnt)
+        non_zero = len(mode_id) - zero_cnt
         #carbon_emi = np.round(np.array(carbon_emi), 2)
         
         hist_emi = carbon_emi
@@ -133,7 +128,7 @@ class LevyFitting(object):
         self.n[0] = 0
         self.n[-1] = 0
         for i in range(len(self.n)):
-            weight.append(self.n[i] / (estimate[i] * 933080))
+            weight.append(self.n[i] / (estimate[i] * non_zero))
         
         weight = preprocessing.normalize([weight])[0]
         
@@ -164,12 +159,12 @@ class LevyFitting(object):
         y_train_pred = self.SkewNorm(X_train,*popt)
         
         plt.axis([0, 15000, 0, 0.06])
-        plt.scatter(X_train, y_train, s=10, c='blue', label='train')
-        plt.scatter(X_train, y_train_pred, s=10, c='red', label='model')
+        plt.scatter(X_train, y_train, s=5, c='blue', label='train')
+        plt.scatter(X_train, y_train_pred, s=5, c='red', label='model')
         plt.grid()
         plt.legend()
-        plt.xlabel('Number of days')
-        plt.ylabel('EPI')
+        plt.xlabel('Carbon emissions (g)', self.font)
+        plt.ylabel('Weight', self.font)
         plt.show()
         
         return popt
@@ -192,10 +187,10 @@ class LevyFitting(object):
             y[i] = y[i] * sum_skew / sum_levy * sum_n
         
         
-        plt.axis([0, 15000, 0, 800])
+        plt.axis([0, 10000, 0, 300])
         plt.hist(self.hist_emi, self.num_bins)
         plt.plot(x, y, 'k', linewidth=2, c='red')
-        plt.title('Carbon emission of each trip by motor vehicle', self.font)
+        # plt.title('Carbon emission of each trip by motor vehicle', self.font)
         plt.xlabel('Carbon emissions (g)', self.font)
         plt.ylabel('Number of trips', self.font)
         plt.show()

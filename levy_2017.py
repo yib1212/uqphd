@@ -84,7 +84,7 @@ class LevyFitting(object):
         for index, value in enumerate(hist_emi):
             if value > 15000:
                 hist_emi[index] = 15000
-        
+                
         d = 10
         min_bound = int(min(hist_emi))
         max_bound = int(max(hist_emi))
@@ -95,8 +95,7 @@ class LevyFitting(object):
         y = car_list + bus_list
         para = levy.fit(y)
         
-        p = levy.pdf(x, *para)
-        gau = skewnorm.pdf(x, a=10, loc=240, scale=3000)
+        gau = skewnorm.pdf(x, a=7, loc=300, scale=4000)
 
         
         # for i in range(len(gau)):
@@ -109,6 +108,8 @@ class LevyFitting(object):
         
         # plt.axis([0, 15000, 0, 800])
         self.n, bin_edges, _ = plt.hist(hist_emi, num_bins)
+        self.p = levy.pdf(x, *para) * sum(self.n) * d
+        
         # plt.plot(x, 933080*p, 'k', linewidth=2, c='red')
         # plt.title('Carbon emission of each trip by motor vehicle', self.font)
         # plt.xlabel('Carbon emissions (g)', self.font)
@@ -153,12 +154,12 @@ class LevyFitting(object):
             weight = gaussian_filter(weight, sigma=1)
         
         X_train, X_test, y_train, y_test = train_test_split(bin_middles, weight, test_size=0.2, random_state=0)
-        popt, pcov = curve_fit(self.SkewNorm, X_train, y_train, p0=(3000, 320 ,10,0,0))
+        popt, pcov = curve_fit(self.SkewNorm, X_train, y_train, p0=(4000, 300 ,7,0,0))
         print(popt)
         
         y_train_pred = self.SkewNorm(X_train,*popt)
         
-        plt.axis([0, 15000, 0, 0.06])
+        plt.axis([0, 10000, 0, 0.06])
         plt.scatter(X_train, y_train, s=5, c='blue', label='train')
         plt.scatter(X_train, y_train_pred, s=5, c='red', label='model')
         plt.grid()
@@ -172,6 +173,7 @@ class LevyFitting(object):
     
     def SkewNormalLevy(self, para, popt):
         
+        print(para)
         x = range(15000)
         y_levy = levy.pdf(x, *para)
         y_skew = self.SkewNorm(x,*popt)
@@ -187,9 +189,11 @@ class LevyFitting(object):
             y[i] = y[i] * sum_skew / sum_levy * sum_n
         
         
-        plt.axis([0, 10000, 0, 300])
-        plt.hist(self.hist_emi, self.num_bins)
-        plt.plot(x, y, 'k', linewidth=2, c='red')
+        plt.axis([0, 10000, 0, 320])
+        plt.hist(self.hist_emi, self.num_bins, color='blue')
+        plt.plot(x, y, 'k', linewidth=2, c='red', label='Skew-Levy')
+        plt.plot(x, self.p, 'k', linewidth=2, c='black', label='Levy')
+        plt.legend()
         # plt.title('Carbon emission of each trip by motor vehicle', self.font)
         plt.xlabel('Carbon emissions (g)', self.font)
         plt.ylabel('Number of trips', self.font)

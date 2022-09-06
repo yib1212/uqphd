@@ -46,16 +46,19 @@ class CarbonEachTrip(object):
         # self.buses_2020 = 216.7
         
         # Table 5.1 Unit: billion pkm
+        # 2017: car 285.53 bus 21.73 rail 18.02
         # 2018: car 284.88 bus 22.08 rail 18.84
         # 2019: car 265.63 bus 16.81 rail 15.05
         # 2020: car 269.48 bus 12.97 rail 09.33
         
-        # Table 11.4 Unit: gigagrams CO2
+        # Table 11.4 11.5 Unit: gigagrams CO2
+        # 2017: car 44078 bus 1780 rail 3655
         # 2018: car 43783 bus 1801 rail 3593
         # 2019: car 40490 bus 1631 rail 3545
         # 2020: car 40633 bus 1582 rail 3542
         
-        #Carbon Emission pkm
+        # Carbon Emission pkm
+        # 2017: car 154.37 bus 81.91   rail 202.83
         # 2018: car 153.69 bus 81.57   rail 190.71
         # 2019: car 152.43 bus 97.03   rail 235.55
         # 2020: car 150.78 bus 121.97  rail 379.64*

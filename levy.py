@@ -146,6 +146,7 @@ class LevyFitting(object):
         
     def LevyFitting(self):
         
+        ''' Levy Fitting '''
         bin_middles = self.bin_middles
         weight = self.n
         weight = preprocessing.normalize([weight])[0]
@@ -157,7 +158,7 @@ class LevyFitting(object):
         
         y_train_pred = self.Levy(X_train, *popt)
         
-        plt.axis([0, 10000, 0, 0.15])
+        plt.axis([0, 10000, 0, 0.17])
         plt.scatter(X_train, y_train, s=5, c='blue', label='train')
         plt.scatter(X_train, y_train_pred, s=5, c='red', label='model')
         plt.grid()
@@ -166,18 +167,19 @@ class LevyFitting(object):
         plt.ylabel('Weight', self.font)
         plt.show()
         
+        ''' Plot the Levy curve '''
         x = range(10000)
         y = self.Levy(x, *popt)
         y = y / sum(y_train_pred) * self.non_zero
         # y_train_pred = y_train_pred / sum(y_train_pred) * self.non_zero
         
         plt.axis([0, 10000, 0, 320])
-        # plt.scatter(X_train, y_train_pred, s=5, c='red', label='model')
         plt.plot(x, y, 'k', linewidth=2, c='red', label='Levy')
-        plt.hist(self.hist_emi, self.num_bins)
+        plt.hist(self.hist_emi, self.num_bins, color='blue')
+        plt.xlabel('Carbon emissions (g)', self.font)
+        plt.ylabel('Number of trips', self.font)
         plt.show()
-        
-        
+                
         return popt
 
     

@@ -76,7 +76,7 @@ class LevyFitting(object):
                 carbon_emi.append(0)
                 zero_cnt += 1
         
-        non_zero = len(mode_id) - zero_cnt
+        self.non_zero = len(mode_id) - zero_cnt
         #carbon_emi = np.round(np.array(carbon_emi), 2)
         
         hist_emi = carbon_emi
@@ -95,9 +95,6 @@ class LevyFitting(object):
         y = car_list + bus_list
         para = levy.fit(y)
         
-        gau = skewnorm.pdf(x, a=7, loc=300, scale=4000)
-
-        
         # for i in range(len(gau)):
         #     p[i] *= gau[i]
         # sum_p = sum(p)
@@ -106,8 +103,9 @@ class LevyFitting(object):
         self.hist_emi = hist_emi
         self.num_bins = num_bins
         
-        # plt.axis([0, 15000, 0, 800])
+        plt.axis([0, 10000, 0, 320])
         self.n, bin_edges, _ = plt.hist(hist_emi, num_bins)
+        plt.show()
         self.p = levy.pdf(x, *para) * sum(self.n) * d
         
         # plt.plot(x, 933080*p, 'k', linewidth=2, c='red')
@@ -129,10 +127,10 @@ class LevyFitting(object):
         self.n[0] = 0
         self.n[-1] = 0
         for i in range(len(self.n)):
-            weight.append(self.n[i] / (estimate[i] * non_zero))
+            weight.append(self.n[i] / (estimate[i] * self.non_zero))
         
         weight = preprocessing.normalize([weight])[0]
-        
+        print("weight", sum(weight))
         plt.axis([0, 15000, 0, 0.06])
         plt.scatter(bin_middles, weight, s=10, c='red')
         plt.show()
@@ -148,13 +146,43 @@ class LevyFitting(object):
         return 2 * a * normpdf * normcdf + c
     
     
-    def WeightFitting(self, bin_middles, weight):
+    def Levy(self, x, sigma, mu, a, c):
+        
+        # levy_fit = np.sqrt(sigma/(2*math.pi)) * (np.exp(-(sigma/2*(x-mu)))) / (np.power((x-mu),2))
+        levy_fit = levy.pdf(x, mu, sigma)
+        
+        return a * levy_fit + c
+    
+    
+    def LevyFitting(self, bin_middles, weight):
+        
+        X_train, X_test, y_train, y_test = train_test_split(bin_middles, weight, test_size=0.4, random_state=0)
+        popt, pcov = curve_fit(self.Levy, X_train, y_train, p0=( 600, 300, 100, 0))
+        print(popt)
+        
+        y_train_pred = self.Levy(X_train,*popt)
+        # y_train_pred = 100 * levy.pdf(X_train, 30, 600)
+        # print(y_train_pred)
+        
+        plt.axis([0, 10000, 0, 0.15])
+        plt.scatter(X_train, y_train, s=5, c='blue', label='train')
+        plt.scatter(X_train, y_train_pred, s=5, c='red', label='model')
+        plt.grid()
+        plt.legend()
+        plt.xlabel('Carbon emissions (g)', self.font)
+        plt.ylabel('Weight', self.font)
+        plt.show()
+        
+        return popt
+    
+    
+    def SkewNormalFitting(self, bin_middles, weight):
         
         for i in range(10):
             weight = gaussian_filter(weight, sigma=1)
         
         X_train, X_test, y_train, y_test = train_test_split(bin_middles, weight, test_size=0.2, random_state=0)
-        popt, pcov = curve_fit(self.SkewNorm, X_train, y_train, p0=(4000, 300 ,7,0,0))
+        popt, pcov = curve_fit(self.SkewNorm, X_train, y_train, p0=(4000, 300, 7, 0, 0))
         print(popt)
         
         y_train_pred = self.SkewNorm(X_train,*popt)
@@ -170,6 +198,28 @@ class LevyFitting(object):
         
         return popt
     
+    
+    def StepLevy(self, bin_middles, popt):
+        
+        n = self.n
+        weight = []
+        
+        skew_norm = self.SkewNorm(bin_middles,*popt)
+        
+        for i in range(len(n)):
+            weight.append(n[i] / (skew_norm[i] * self.non_zero))
+        for i in range(10):
+            weight = gaussian_filter(weight, sigma=1)
+        
+            
+        weight = preprocessing.normalize([weight])[0]
+        
+        plt.axis([0, 10000, 0, 0.15])
+        plt.scatter(bin_middles, weight, s=10, c='red')
+        plt.show()
+        
+        return weight
+        
     
     def SkewNormalLevy(self, para, popt):
         
@@ -199,7 +249,43 @@ class LevyFitting(object):
         plt.ylabel('Number of trips', self.font)
         plt.show()
         
-        return 
+        return None
+    
+    
+    def Result(self, para, popt_skew, popt_levy):
+        
+        x = range(15000)
+        y_levy_1 = levy.pdf(x, *para)
+        y_levy_2 = self.Levy(x, *popt_levy)
+        y_skew = self.SkewNorm(x, *popt_skew)
+        y_1 = []
+        y_2 = []
+        
+        for i in range(15000):
+            y_1.append(y_levy_1[i] * y_skew[i])
+            y_2.append(y_levy_2[i] * y_skew[i])
+        sum_skew = sum(y_skew)
+        sum_levy_1 = sum(y_levy_1)
+        sum_levy_2 = sum(y_levy_2)
+        sum_n = sum(self.n)
+        
+        for i in range(15000):
+            y_1[i] = y_1[i] * sum_skew / sum_levy_1 * sum_n
+            y_2[i] = y_2[i] * sum_skew / sum_levy_2 * sum_n
+            
+        
+        plt.axis([0, 10000, 0, 320])
+        plt.hist(self.hist_emi, self.num_bins, color='blue')
+        plt.plot(x, y_1, 'k', linewidth=2, c='red', label='Skew-Levy_1')
+        plt.plot(x, y_2, 'k', linewidth=2, c='red', label='Skew-Levy_2')
+        plt.plot(x, self.p, 'k', linewidth=2, c='black', label='Levy')
+        plt.legend()
+        # plt.title('Carbon emission of each trip by motor vehicle', self.font)
+        plt.xlabel('Carbon emissions (g)', self.font)
+        plt.ylabel('Number of trips', self.font)
+        plt.show()
+        
+        return None
     
     
     def ProfileLikelihood(self, bin_middles, weight):
@@ -224,11 +310,6 @@ class LevyFitting(object):
         plt.plot(bin_middles, f_skew, 'k', linewidth=2, c='red')
         plt.show()
         
-        # print(data)
-        # print(len(data))
-        # print(weight)
-        
-        
         return None
     
     
@@ -238,8 +319,6 @@ class LevyFitting(object):
         mean = 1700
         e = math.e
         pi = math.pi
-        
-        # gaussian = (1/(sigma*(math.sqrt(2*pi)))) * (e^(-0.5*((x-mean)/sigma)^2))
         
         y = []
         for i in x:
@@ -257,8 +336,11 @@ if __name__ == "__main__":
     levy_fitting = LevyFitting()
     bin_middles, weight, para = levy_fitting.TripEmission()
     # levy_fitting.ProfileLikelihood(bin_middles, weight)
-    popt = levy_fitting.WeightFitting(bin_middles, weight)
-    levy_fitting.SkewNormalLevy(para, popt)
+    popt_skew = levy_fitting.SkewNormalFitting(bin_middles, weight)
+    levy_fitting.SkewNormalLevy(para, popt_skew)
+    weigth_levy = levy_fitting.StepLevy(bin_middles, popt_skew)
+    popt_levy = levy_fitting.LevyFitting(bin_middles, weigth_levy)
+    levy_fitting.Result(para, popt_skew, popt_levy)
     
     # with open('test.csv', 'w') as f:
     #     # create the csv writer

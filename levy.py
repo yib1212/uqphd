@@ -11,13 +11,11 @@ import numpy as np
 import pandas as pd
 from objective_1 import CarbonEmission
 from scipy.stats import levy
-from scipy.stats import skewnorm
 from sklearn import preprocessing
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import scipy.special as sp
 from sklearn.model_selection import train_test_split
-from scipy.ndimage import gaussian_filter
 
 
 class LevyFitting(object):
@@ -33,16 +31,15 @@ class LevyFitting(object):
         self.bus_2019 = 97.03
         self.bus_2020 = 121.97
         
+        self.car_ave = 152.3
+        self.bus_ave = 100.2
+        
         # Database location
         conn_str = (r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};'
-                    r'DBQ=data\Travel Survey\2018.accdb;')
+                    r'DBQ=data\Travel Survey\2018-21_pooled_seq_qts_erv1.0.accdb;')
         
         conn = pyodbc.connect(conn_str)
-        
-        cursor = conn.cursor()
-        for i in cursor.tables(tableType='TABLE'):
-            print(i.table_name)
-            
+                    
         self.df_1 = pd.read_sql(f'select * from 1_QTS_HOUSEHOLDS', conn)
         self.df_3 = pd.read_sql(f'select * from 3_QTS_VEHICLES', conn)
         self.df_5 = pd.read_sql(f'select * from 5_QTS_TRIPS', conn)
@@ -102,11 +99,11 @@ class LevyFitting(object):
                 
         for i in range(len(mode_id)):
             if mode_id[i] == 0 or mode_id[i] == 2:
-                carbon_emi.append(cum_dist[i] * self.car_2018)
-                car_list.append(cum_dist[i] * self.car_2018)
+                carbon_emi.append(cum_dist[i] * self.car_ave)
+                car_list.append(cum_dist[i] * self.car_ave)
             elif mode_id[i] == 3:
-                carbon_emi.append(cum_dist[i] * self.bus_2018)
-                bus_list.append(cum_dist[i] * self.bus_2018)
+                carbon_emi.append(cum_dist[i] * self.bus_ave)
+                bus_list.append(cum_dist[i] * self.bus_ave)
             else:
                 carbon_emi.append(0)
                 zero_cnt += 1
@@ -121,16 +118,11 @@ class LevyFitting(object):
         self.non_zero = len(mode_id) - zero_cnt - max_bound
                 
         num_bins = (max_bound - min_bound) // d
-                
-        ''' Levy distribution '''
-        x = range(10000)
-        y = car_list + bus_list
-        para = levy.fit(y)
         
         self.hist_emi = hist_emi
         self.num_bins = num_bins
         
-        plt.axis([0, 10000, 0, 320])
+        plt.axis([0, max_bound, 0, 900])
         self.n, bin_edges, _ = plt.hist(hist_emi, num_bins)
         self.n[0] = 0
         self.n[-1] = 0
@@ -140,15 +132,13 @@ class LevyFitting(object):
         plt.ylabel('Number of trips', self.font)
         plt.show()
                 
-        return None
-        # return bin_middles, weight, para
+        return self.n, self.non_zero, self.hist_emi
         
         
-    def LevyFitting(self):
+    def LevyFitting(self, weight, non_zero, emission):
         
         ''' Levy Fitting '''
         bin_middles = self.bin_middles
-        weight = self.n
         weight = preprocessing.normalize([weight])[0]
         print(sum(weight))
         
@@ -170,17 +160,77 @@ class LevyFitting(object):
         ''' Plot the Levy curve '''
         x = range(10000)
         y = self.Levy(x, *popt)
-        y = y / sum(y_train_pred) * self.non_zero
+        y_all = self.Levy(bin_middles, *popt)
+        y = y / sum(y_all) * non_zero
         # y_train_pred = y_train_pred / sum(y_train_pred) * self.non_zero
         
-        plt.axis([0, 10000, 0, 320])
+        plt.axis([0, 10000, 0, 450])
         plt.plot(x, y, 'k', linewidth=2, c='red', label='Levy')
-        plt.hist(self.hist_emi, self.num_bins, color='blue')
+        plt.hist(emission, self.num_bins, color='blue')
         plt.xlabel('Carbon emissions (g)', self.font)
         plt.ylabel('Number of trips', self.font)
         plt.show()
                 
         return popt
+    
+    
+    def TravelPurpose(self):
+        
+        carbon_emi = self.hist_emi
+        num_bins = self.num_bins
+                        
+        purpose = np.array(self.df_5)[:, 25]
+                
+        commute = []
+        shopping = []
+        pickup = []
+        recreation = []
+        education = []
+        business = []
+        accompany = []
+        work = []
+        social = []
+        deliver = []
+        other = []
+        
+        for index, value in enumerate(purpose):
+            if value == 'Direct Work Commute':
+                commute.append(carbon_emi[index])
+            elif value == 'Shopping':
+                shopping.append(carbon_emi[index])
+            elif value == 'Pickup/Dropoff Someone':
+                pickup.append(carbon_emi[index])
+            elif value == 'Recreation':
+                recreation.append(carbon_emi[index])
+            elif value == 'Education':
+                education.append(carbon_emi[index])
+            elif value == 'Personal Business':
+                business.append(carbon_emi[index])
+            elif value == 'Accompany Someone':
+                accompany.append(carbon_emi[index])
+            elif value == 'Work Related':
+                work.append(carbon_emi[index])
+            elif value == 'Social':
+                social.append(carbon_emi[index])
+            elif value == 'Pickup/Deliver Something':
+                deliver.append(carbon_emi[index])
+            else:
+                other.append(carbon_emi[index])
+        
+        type_a = commute + work
+        type_b = shopping + recreation
+        type_c = pickup + education + accompany
+        
+        plt.axis([0, 10000, 0, 450])
+        n, _, _ = plt.hist(type_b, num_bins)
+        plt.title('Carbon emission of each trip: Accompany', self.font)
+        plt.show()
+        
+        non_zero = len(type_b) - n[0] - n[-1]
+        n[0] = 0
+        n[-1] = 0
+        
+        return n, non_zero, type_b
 
     
     
@@ -188,5 +238,7 @@ class LevyFitting(object):
 if __name__ == "__main__":
     
     levy_fitting = LevyFitting()
-    levy_fitting.TripEmission()
-    levy_fitting.LevyFitting()
+    weight, non_zero, emission = levy_fitting.TripEmission()
+    levy_fitting.LevyFitting(weight, non_zero, emission)
+    weight_c, non_zero_c, emission_c = levy_fitting.TravelPurpose()
+    levy_fitting.LevyFitting(weight_c, non_zero_c, emission_c)

@@ -171,13 +171,12 @@ class LevyFitting(object):
         plt.ylabel('Number of trips', self.font)
         plt.show()
                 
-        return popt
+        return y
     
     
-    def TravelPurpose(self):
+    def TravelPurpose(self, ):
         
         carbon_emi = self.hist_emi
-        num_bins = self.num_bins
                         
         purpose = np.array(self.df_5)[:, 25]
                 
@@ -217,21 +216,49 @@ class LevyFitting(object):
             else:
                 other.append(carbon_emi[index])
         
-        type_a = commute + work
-        type_b = shopping + recreation
-        type_c = pickup + education + accompany
+        dict_purp = {'commute':    commute,
+                     'shopping':   shopping,
+                     'pickup':     pickup,
+                     'recreation': recreation,
+                     'education':  education, 
+                     }
         
-        plt.axis([0, 10000, 0, 450])
-        n, _, _ = plt.hist(type_b, num_bins)
-        plt.title('Carbon emission of each trip: Accompany', self.font)
+        return dict_purp
+    
+    
+    def PurposeAnalysis(self, dict_purp):
+        
+        num_bins = self.num_bins
+        dist_estm = {}
+                
+        for key in dict_purp:
+            print(key)
+        
+            plt.axis([0, 10000, 0, 250])
+            n, _, _ = plt.hist(dict_purp[key], num_bins)
+            plt.show()
+        
+            non_zero = len(dict_purp[key]) - n[0] - n[-1]
+            n[0] = 0
+            n[-1] = 0
+            
+            dist_estm[key] = self.LevyFitting(n, non_zero, dict_purp[key])
+        
+        x = range(10000)
+        plt.axis([0, 10000, 0, 200])
+        plt.plot(x, dist_estm['commute'], 'k', linewidth=2, c='red', label='Commute')
+        plt.plot(x, dist_estm['shopping'], 'k', linewidth=2, c='blue', label='Shopping')
+        plt.plot(x, dist_estm['pickup'], 'k', linewidth=2, c='green', label='Pickup')
+        plt.plot(x, dist_estm['recreation'], 'k', linewidth=2, c='yellow', label='Recreation')
+        plt.plot(x, dist_estm['education'], 'k', linewidth=2, c='black', label='Education')
+        plt.legend()
+        plt.xlabel('Carbon emissions (g)', self.font)
+        plt.ylabel('Number of trips', self.font)
         plt.show()
         
-        non_zero = len(type_b) - n[0] - n[-1]
-        n[0] = 0
-        n[-1] = 0
         
-        return n, non_zero, type_b
-
+        return None
+        
     
     
     
@@ -240,5 +267,7 @@ if __name__ == "__main__":
     levy_fitting = LevyFitting()
     weight, non_zero, emission = levy_fitting.TripEmission()
     levy_fitting.LevyFitting(weight, non_zero, emission)
-    weight_c, non_zero_c, emission_c = levy_fitting.TravelPurpose()
-    levy_fitting.LevyFitting(weight_c, non_zero_c, emission_c)
+    # weight_c, non_zero_c, emission_c = levy_fitting.TravelPurpose()
+    # levy_fitting.LevyFitting(weight_c, non_zero_c, emission_c)
+    dict_purp = levy_fitting.TravelPurpose()
+    levy_fitting.PurposeAnalysis(dict_purp)

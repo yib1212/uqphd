@@ -7,11 +7,11 @@ Created on Wed Aug 31 13:48:24 2022
 
 import math
 import pyodbc
+import collections
 import numpy as np
 import pandas as pd
 from objective_1 import CarbonEmission
 from scipy.stats import levy
-from sklearn import preprocessing
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import scipy.special as sp
@@ -139,7 +139,7 @@ class LevyFitting(object):
         
         ''' Levy Fitting '''
         bin_middles = self.bin_middles
-        weight = preprocessing.normalize([weight])[0]
+        weight = np.array(weight) / sum(weight)
         print(sum(weight))
         
         X_train, X_test, y_train, y_test = train_test_split(bin_middles, weight, test_size=0.3, random_state=0)
@@ -179,7 +179,8 @@ class LevyFitting(object):
         carbon_emi = self.hist_emi
                         
         purpose = np.array(self.df_5)[:, 25]
-                
+        print(collections.Counter(purpose))
+        
         commute = []
         shopping = []
         pickup = []
@@ -221,6 +222,8 @@ class LevyFitting(object):
                      'pickup':     pickup,
                      'recreation': recreation,
                      'education':  education, 
+                     'business':   business,
+                     'work':       work
                      }
         
         return dict_purp
@@ -251,6 +254,8 @@ class LevyFitting(object):
         plt.plot(x, dist_estm['pickup'], 'k', linewidth=2, c='green', label='Pickup')
         plt.plot(x, dist_estm['recreation'], 'k', linewidth=2, c='yellow', label='Recreation')
         plt.plot(x, dist_estm['education'], 'k', linewidth=2, c='black', label='Education')
+        plt.plot(x, dist_estm['business'], 'k', linewidth=2, c='orange', label='Personal business')
+        plt.plot(x, dist_estm['work'], 'k', linewidth=2, c='purple', label='Work related')
         plt.legend()
         plt.xlabel('Carbon emissions (g)', self.font)
         plt.ylabel('Number of trips', self.font)

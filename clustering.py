@@ -89,7 +89,20 @@ class Clustering(object):
         return emission
     
     
+    def Cluster(self, emission):
+        
+        mu = [0, 0]
+        sigma = [1000, 1000]
+        tao = [0.5, 0.5]
+        
+        
+        
+        return None
+        
+    
+    
 if __name__ == "__main__":
     
     clustering = Clustering()
     emission = clustering.TripEmission()
+    clustering.Cluster(emission)

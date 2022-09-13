@@ -95,26 +95,37 @@ class Clustering(object):
         N = len(emission)
         K = 2
         
-        mu = [0, 0]
-        a = [1.7, 1.7]
-        c = [-3e-4, -3e-4]
-        sigma = [1000, 1000]
-        tao = np.array([1/K, 1/K])
+        mu = [-3.85422504e+02, -2.20148278e+01]
+        a = [2.68429086e+01, 1.74463495e+01]
+        c = [-4.98387642e-04-4.98387642e-04, -3.86581062e-04]
+        sigma = np.array([3.56895776e+03, 7.34664230e+02])
+        tao = np.array([1/4, 3/4])
         
         prob_n = np.zeros((K, N))
         T_n = np.zeros((K, N))
+        y = np.zeros((K, 1000))
         
         for m in range(M):
             
             ''' E Step '''
             for n in range(N):
                 for k in range(K):
-                    prob_n[k, n] = self.Levy(emission[n], sigma, mu, a, c)
+                    prob_n[k, n] = self.Levy(emission[n], sigma[k], mu[k], a[k], c[k])
                     T_n[k, n] = (prob_n[k, n]*tao[k]) / np.dot(prob_n[:, n], tao)
-            tao = np.sum(T_n, axis = 0) / N
+            tao = np.sum(T_n, axis = 1) / N
                 
-                
+            print(np.sum(T_n, axis = 1))
+            
             ''' M Step '''
+            sigma = N / np.sum(1/T_n, axis = 1)
+            print(sigma)
+            for k in range(K):
+                x = range(1000)
+                y[k] = self.Levy(x, sigma[k], mu[k], a[k], c[k])
+            
+            plt.plot(x, y[0], 'k', linewidth=2, c='red', label='Commute')
+            plt.plot(x, y[1], 'k', linewidth=2, c='blue', label='Shopping')
+            plt.show()
             
         
         return None

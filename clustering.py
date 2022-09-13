@@ -91,11 +91,31 @@ class Clustering(object):
     
     def Cluster(self, emission):
         
+        M = 20
+        N = len(emission)
+        K = 2
+        
         mu = [0, 0]
+        a = [1.7, 1.7]
+        c = [-3e-4, -3e-4]
         sigma = [1000, 1000]
-        tao = [0.5, 0.5]
+        tao = np.array([1/K, 1/K])
         
+        prob_n = np.zeros((K, N))
+        T_n = np.zeros((K, N))
         
+        for m in range(M):
+            
+            ''' E Step '''
+            for n in range(N):
+                for k in range(K):
+                    prob_n[k, n] = self.Levy(emission[n], sigma, mu, a, c)
+                    T_n[k, n] = (prob_n[k, n]*tao[k]) / np.dot(prob_n[:, n], tao)
+            tao = np.sum(T_n, axis = 0) / N
+                
+                
+            ''' M Step '''
+            
         
         return None
         

@@ -16,6 +16,8 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import scipy.special as sp
 from sklearn.model_selection import train_test_split
+from scipy.stats import chi2
+from scipy.ndimage import gaussian_filter
 
 
 class LevyFitting(object):
@@ -64,7 +66,7 @@ class LevyFitting(object):
         # levy_fit = np.sqrt(sigma/(2*math.pi)) * (np.exp(-(sigma/2*(x-mu)))) / (np.power((x-mu),2))
         levy_fit = levy.pdf(x, mu, sigma)
         
-        return a * levy_fit + c
+        return a * levy_fit
     
     
     def GaussianKernal(self, x):
@@ -131,7 +133,7 @@ class LevyFitting(object):
         plt.xlabel('Carbon emissions (g)', self.font)
         plt.ylabel('Number of trips', self.font)
         plt.show()
-                
+                        
         return self.n, self.non_zero, self.hist_emi
         
         
@@ -148,7 +150,7 @@ class LevyFitting(object):
         
         y_train_pred = self.Levy(X_train, *popt)
         
-        plt.axis([0, 10000, 0, 0.17])
+        plt.axis([0, 10000, 0, 0.01])
         plt.scatter(X_train, y_train, s=5, c='blue', label='train')
         plt.scatter(X_train, y_train_pred, s=5, c='red', label='model')
         plt.grid()
@@ -161,17 +163,54 @@ class LevyFitting(object):
         x = range(10000)
         y = self.Levy(x, *popt)
         y_all = self.Levy(bin_middles, *popt)
+        y_all[y_all < 0] = 0
         y = y / sum(y_all) * non_zero
         # y_train_pred = y_train_pred / sum(y_train_pred) * self.non_zero
         
-        plt.axis([0, 10000, 0, 450])
+        plt.axis([0, 10000, 0, 900])
         plt.plot(x, y, 'k', linewidth=2, c='red', label='Levy')
         plt.hist(emission, self.num_bins, color='blue')
         plt.xlabel('Carbon emissions (g)', self.font)
         plt.ylabel('Number of trips', self.font)
         plt.show()
-                
-        return y
+        
+        return popt
+    
+    
+    def Weight(self, popt):
+        
+        ''' Scatter the Weight '''
+        bin_middles = self.bin_middles
+        weight = []
+        estimate = self.Levy(bin_middles, *popt)
+        self.n[0] = 0
+        self.n[-1] = 0
+        for i in range(len(self.n)):
+            weight.append(self.n[i] / (estimate[i] * non_zero))
+        
+        weight = np.array(weight) / sum(weight)
+        
+        plt.axis([0, 10000, 0, 0.003])
+        plt.scatter(bin_middles, weight, s=10, c='red')
+        plt.show()
+        
+        return popt
+    
+    
+    def ChiSquare(self, popt):
+        
+        non_zero = self.non_zero
+        bin_middles = self.bin_middles
+        A = np.array(self.n)
+        E = np.array(self.Levy(bin_middles, *popt))
+        E[E < 0] = 0
+        E = E / np.sum(E) * non_zero
+        div = np.divide(np.square(A - E), E, out=np.zeros_like(E), where=E!=0)
+        X_2 = np.sum(div)
+        
+        print(X_2, chi2.ppf(0.95,497))
+        
+        return None    
     
     
     def TravelPurpose(self, ):
@@ -271,8 +310,9 @@ if __name__ == "__main__":
     
     levy_fitting = LevyFitting()
     weight, non_zero, emission = levy_fitting.TripEmission()
-    levy_fitting.LevyFitting(weight, non_zero, emission)
-    # weight_c, non_zero_c, emission_c = levy_fitting.TravelPurpose()
-    # levy_fitting.LevyFitting(weight_c, non_zero_c, emission_c)
-    dict_purp = levy_fitting.TravelPurpose()
-    levy_fitting.PurposeAnalysis(dict_purp)
+    popt = levy_fitting.LevyFitting(weight, non_zero, emission)
+    levy_fitting.Weight(popt)
+    levy_fitting.ChiSquare(popt)
+    
+    # dict_purp = levy_fitting.TravelPurpose()
+    # levy_fitting.PurposeAnalysis(dict_purp)

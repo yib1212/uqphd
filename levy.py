@@ -61,7 +61,7 @@ class LevyFitting(object):
         return 2 * a * normpdf * normcdf + c
     
     
-    def Norm(self, x, sigma, mu, c, a):
+    def Norm(self, x, sigma, mu, alpha, c, a):
         
         normpdf = (1/(sigma*np.sqrt(2*math.pi)))*np.exp(-(np.power((x-mu),2)/(2*np.power(sigma,2))))
         
@@ -149,17 +149,15 @@ class LevyFitting(object):
         ''' Levy Fitting '''
         bin_middles = self.bin_middles
         weight = np.array(weight) / sum(weight)
-        print(sum(weight))
         
-        X_train, X_test, y_train, y_test = train_test_split(bin_middles, weight, test_size=0.3, random_state=0)
-        popt, pcov = curve_fit(self.Levy, X_train, y_train, p0=( 600, 300, 100, 0))
+        popt, pcov = curve_fit(self.Levy, bin_middles, weight, p0=( 600, 300, 100, 0))
         print(popt)
         
-        y_train_pred = self.Levy(X_train, *popt)
+        y_train_pred = self.Levy(bin_middles, *popt)
         
         plt.axis([0, 10000, 0, 0.01])
-        plt.scatter(X_train, y_train, s=5, c='blue', label='train')
-        plt.scatter(X_train, y_train_pred, s=5, c='red', label='model')
+        plt.scatter(bin_middles, weight, s=5, c='blue', label='train')
+        plt.scatter(bin_middles, y_train_pred, s=5, c='red', label='model')
         plt.grid()
         plt.legend()
         plt.xlabel('Carbon emissions (g)', self.font)
@@ -184,72 +182,73 @@ class LevyFitting(object):
         return popt
     
     
-    def Weight(self, popt):
+    def Weight(self, popt_levy):
         
-        ''' Scatter the Weight '''
         bin_middles = self.bin_middles
-        weight = []
-        n = self.n
+        n = np.array(self.n)
         non_zero = self.non_zero
-        estimate = self.Levy(bin_middles, *popt)
+        estimate = np.array(self.Levy(bin_middles, *popt_levy))
         
-        for i in range(len(n)):
-            weight.append(n[i] / (estimate[i] * non_zero))
-        
-        weight = np.array(weight) / sum(weight)
+        ''' Compute the Weight '''
+        weight = n / (estimate * non_zero)
+        weight /= sum(weight)
         weight[weight > 0.0015] = 0.0013
+        
+        ''' Gaussian filter '''
         for i in range(20):
             weight = gaussian_filter(weight, sigma=1)
-        X_train, X_test, y_train, y_test = train_test_split(bin_middles, weight, test_size=0.2, random_state=0)
-        popt_norm, pcov = curve_fit(self.SkewNorm, X_train, y_train, p0=(4000, 300 ,7,0,0))
+        
+        ''' Fit and predict '''
+        popt_norm, pcov = curve_fit(self.Norm, bin_middles, weight, p0=(4000, 300 ,7,0,0))
         print(popt_norm)
+        y_train_pred = self.Norm(bin_middles,*popt_norm)
         
-        y_train_pred = self.SkewNorm(X_train,*popt_norm)
-        
+        ''' Scatter the Weight and plot the prediction '''
         plt.axis([0, 10000, 0, 0.003])
-        plt.scatter(X_train, y_train, s=5, c='blue', label='train')
-        plt.scatter(X_train, y_train_pred, s=5, c='red', label='model')
+        plt.scatter(bin_middles, weight, s=5, c='blue', label='train')
+        plt.scatter(bin_middles, y_train_pred, s=5, c='red', label='model')
         plt.grid()
         plt.legend()
         plt.show()
         
-        x = range(10000)
-        y_levy = np.array(self.Levy(x, *popt))
-        y_skew = np.array(self.SkewNorm(x, *popt_norm))
-        y = y_levy * y_skew
+        return popt_norm
+    
+    
+    def ChiSquare(self, popt_levy, popt_norm):
         
+        non_zero = self.non_zero
+        bin_middles = self.bin_middles
+        hist_emi =self.hist_emi
+                
+        ''' Plot the Levy and Skew-levy curve '''
+        x = range(10000)
+        y_levy = np.array(self.Levy(x, *popt_levy))
+        y_norm = np.array(self.Norm(x, *popt_norm))
+        y = y_levy * y_norm
         y_levy = y_levy / np.sum(y_levy) * non_zero * 10
         y = y / np.sum(y) * np.sum(y_levy)
-        print(y)
-        
+                
         plt.axis([0, 10000, 0, 900])
-        plt.hist(self.hist_emi, self.num_bins, color='blue')
+        plt.hist(hist_emi, self.num_bins, color='blue')
         plt.plot(x, y, 'k', linewidth=2, c='red', label='Skew-Levy')
         plt.plot(x, y_levy, 'k', linewidth=2, c='black', label='Levy')
         plt.legend()
-        # plt.title('Carbon emission of each trip by motor vehicle', self.font)
         plt.xlabel('Carbon emissions (g)', self.font)
         plt.ylabel('Number of trips', self.font)
         plt.show()
         
-        
-        return popt
-    
-    
-    def ChiSquare(self, popt):
-        
-        non_zero = self.non_zero
-        bin_middles = self.bin_middles
+        ''' Compute the Chi-square '''
         A = np.array(self.n)
-        E = np.array(self.Levy(bin_middles, *popt))
-        E[E < 0] = 0
+        E_levy = np.array(self.Levy(bin_middles, *popt_levy))
+        E_norm = np.array(self.Norm(bin_middles, *popt_norm))
+        E = E_levy * E_norm
         E = E / np.sum(E) * non_zero
         div = np.divide(np.square(A - E), E, out=np.zeros_like(E), where=E!=0)
         X_2 = np.sum(div)
         
-        print(X_2, chi2.ppf(0.95,497))
+        print(X_2)
         
-        return None    
+        return E_norm    
     
     
     def TravelPurpose(self, ):
@@ -349,9 +348,18 @@ if __name__ == "__main__":
     
     levy_fitting = LevyFitting()
     weight, non_zero, emission = levy_fitting.TripEmission()
-    popt = levy_fitting.LevyFitting(weight, non_zero, emission)
-    levy_fitting.Weight(popt)
-    levy_fitting.ChiSquare(popt)
+    
+    popt_levy = levy_fitting.LevyFitting(weight, non_zero, emission)
+    popt_norm = levy_fitting.Weight(popt_levy)
+    y_norm = levy_fitting.ChiSquare(popt_levy, popt_norm)
+    
+    print(chi2.ppf(0.5,1000))
+    
+    # for i in range(10):
+    #     weight /= y_norm
+    #     popt_levy = levy_fitting.LevyFitting(weight, non_zero, emission)
+    #     popt_norm = levy_fitting.Weight(popt_levy)
+    #     y_norm = levy_fitting.ChiSquare(popt_levy, popt_norm)
     
     # dict_purp = levy_fitting.TravelPurpose()
     # levy_fitting.PurposeAnalysis(dict_purp)

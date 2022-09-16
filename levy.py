@@ -192,7 +192,11 @@ class LevyFitting(object):
         ''' Compute the Weight '''
         weight = n / (estimate * non_zero)
         weight /= sum(weight)
-        weight[weight > 0.0015] = 0.0013
+        weight[-1] = 0
+        weight[0] = 0.003
+        weight[weight > 0.003] = 0.003
+        
+        
         
         ''' Gaussian filter '''
         for i in range(20):

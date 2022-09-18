@@ -124,7 +124,7 @@ class LevyFitting(object):
                 max_cnt += 1
                 hist_emi[index] = max_bound
         
-        self.non_zero = len(mode_id) - zero_cnt - max_bound
+        self.non_zero = len(mode_id) - zero_cnt - max_cnt
                 
         num_bins = (max_bound - min_bound) // d
         
@@ -168,7 +168,7 @@ class LevyFitting(object):
         x = range(10000)
         y = self.Levy(x, *popt)
         y_all = self.Levy(bin_middles, *popt)
-        y_all[y_all < 0] = 0
+        print(sum(y), sum(y_all))
         y = y / sum(y_all) * non_zero
         # y_train_pred = y_train_pred / sum(y_train_pred) * self.non_zero
         

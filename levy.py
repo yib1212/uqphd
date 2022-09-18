@@ -124,7 +124,7 @@ class LevyFitting(object):
                 max_cnt += 1
                 hist_emi[index] = max_bound
         
-        self.non_zero = len(mode_id) - zero_cnt - max_bound
+        self.non_zero = len(mode_id) - zero_cnt - max_cnt
                 
         num_bins = (max_bound - min_bound) // d
         
@@ -341,7 +341,6 @@ class LevyFitting(object):
         plt.xlabel('Carbon emissions (g)', self.font)
         plt.ylabel('Number of trips', self.font)
         plt.show()
-        
         
         return None
         

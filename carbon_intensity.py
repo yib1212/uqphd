@@ -102,6 +102,14 @@ class CarbonEachTrip(object):
         return poisson.pmf(k, lamb)
     
     
+    def Levy(self, x, sigma, mu, a, c):
+        
+        # levy_fit = np.sqrt(sigma/(2*math.pi)) * (np.exp(-(sigma/2*(x-mu)))) / (np.power((x-mu),2))
+        levy_fit = levy.pdf(x, mu, sigma)
+        
+        return a * levy_fit
+    
+    
     def TripDistance(self):
         
         cum_dist = np.array(self.df_5)[:, 24]
@@ -147,11 +155,25 @@ class CarbonEachTrip(object):
         # para = levy.fit(dist_no_zero)
         # x = range(110)
         # p = levy.pdf(x, *para)        
+                
+        dist, bin_edges, _ = plt.hist(dist_no_zero, num_bins, color='blue')
+        sum_dist = sum(dist)
         
-        plt.axis([0, 110, 0, 3500])
+        bin_middles = 0.5 * (bin_edges[1:] + bin_edges[:-1])
+        dist = np.array(dist) / sum_dist
+        popt, pcov = curve_fit(self.Levy, bin_middles, dist, p0=( 5, -10, 0.25, 0))
+        print(popt)
+        
+        ''' Plot the Levy curve '''
+        x = range(110)
+        y = self.Levy(x, *popt)
+        y_all = self.Levy(bin_middles, *popt)
+        y = y / sum(y_all) * sum_dist
+
+        
+        plt.axis([0, 110, 0, 3000])
         # plt.plot(x, cnt*d*p, 'k', linewidth=2, c='red')
-        
-        dist, _, _ = plt.hist(cum_dist, num_bins)
+        plt.plot(x, y, 'k', linewidth=2, c='red', label='Levy')
         plt.title('Travel distance of each trip', self.font)
         plt.xlabel('Distance (km)', self.font)
         plt.ylabel('Number of trips', self.font)

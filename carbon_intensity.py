@@ -19,6 +19,7 @@ from scipy.stats import skewnorm
 from scipy.optimize import curve_fit
 from scipy.special import factorial
 from scipy.stats import poisson
+from scipy.ndimage import gaussian_filter
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 
@@ -156,24 +157,24 @@ class CarbonEachTrip(object):
         # x = range(110)
         # p = levy.pdf(x, *para)        
                 
-        dist, bin_edges, _ = plt.hist(dist_no_zero, num_bins, color='blue')
-        sum_dist = sum(dist)
+        dist, bin_edges, _ = plt.hist(dist_no_zero, num_bins)
+        # sum_dist = sum(dist)
         
-        bin_middles = 0.5 * (bin_edges[1:] + bin_edges[:-1])
-        dist = np.array(dist) / sum_dist
-        popt, pcov = curve_fit(self.Levy, bin_middles, dist, p0=( 5, -10, 0.25, 0))
-        print(popt)
+        # bin_middles = 0.5 * (bin_edges[1:] + bin_edges[:-1])
+        # dist = np.array(dist) / sum_dist
+        # popt, pcov = curve_fit(self.Levy, bin_middles, dist, p0=( 5, -10, 0.25, 0))
+        # print(popt)
         
-        ''' Plot the Levy curve '''
-        x = range(110)
-        y = self.Levy(x, *popt)
-        y_all = self.Levy(bin_middles, *popt)
-        y = y / sum(y_all) * sum_dist
+        # ''' Plot the Levy curve '''
+        # x = range(110)
+        # y = self.Levy(x, *popt)
+        # y_all = self.Levy(bin_middles, *popt)
+        # y = y / sum(y_all) * sum_dist
 
         
         plt.axis([0, 110, 0, 3000])
         # plt.plot(x, cnt*d*p, 'k', linewidth=2, c='red')
-        plt.plot(x, y, 'k', linewidth=2, c='red', label='Levy')
+        # plt.plot(x, y, 'k', linewidth=2, c='red', label='Levy')
         plt.title('Travel distance of each trip', self.font)
         plt.xlabel('Distance (km)', self.font)
         plt.ylabel('Number of trips', self.font)
@@ -459,12 +460,34 @@ class CarbonEachTrip(object):
         plt.show()
         
         return None
+    
+    
+    def Exponential(self):
+        
+        n = np.array(self.n)
+        bins = self.bins
+        bin_middles = 0.5 * (bins[1:] + bins[:-1])
+        
+        n = np.log10(n)
+        
+        for i in range(20):
+            n = gaussian_filter(n, sigma=1)
+        
+        plt.axis([0, 8000, 0, 3.5])
+        plt.scatter(bin_middles, n, s=5, c='blue', label='train')
+        plt.xlabel('Carbon emissions (g)', self.font)
+        plt.ylabel('Number of trips (10^)', self.font)
+        plt.show()
+        
+        return None
+        
         
         
 if __name__ == "__main__":
     
     emission = CarbonEachTrip()
     carbon_emi, car_list = emission.TripEmission()
+    emission.Exponential()
     # emission.TravelPurpose(carbon_emi)
     # time_ave, emi_ave = emission.RegionTime(carbon_emi)
     # emission.AlgorithmInit(carbon_emi)

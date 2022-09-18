@@ -151,14 +151,14 @@ class CarbonEachTrip(object):
         plt.axis([0, 110, 0, 3500])
         # plt.plot(x, cnt*d*p, 'k', linewidth=2, c='red')
         
-        plt.hist(cum_dist, num_bins)
+        dist, _, _ = plt.hist(cum_dist, num_bins)
         plt.title('Travel distance of each trip', self.font)
         plt.xlabel('Distance (km)', self.font)
         plt.ylabel('Number of trips', self.font)
         
         plt.show()
         
-        return None
+        return dist
 
     
     def TripEmission(self):
@@ -448,4 +448,4 @@ if __name__ == "__main__":
     # emission.AlgorithmInit(carbon_emi)
     # emission.SkewNormFitting()
     # emission.ExponNormFitting()
-    emission.TripDistance()
+    dist = emission.TripDistance()

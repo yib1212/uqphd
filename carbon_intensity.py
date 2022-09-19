@@ -468,15 +468,18 @@ class CarbonEachTrip(object):
         bins = self.bins
         bin_middles = 0.5 * (bins[1:] + bins[:-1])
         
-        n = np.log10(n)
+        # n = np.log10(n)
+        n[0] = 0
         
         for i in range(20):
             n = gaussian_filter(n, sigma=1)
         
-        plt.axis([0, 8000, 0, 3.5])
+        plt.xlim([0, 10000])
+        plt.ylim([1e0, 1.2e3])
         plt.scatter(bin_middles, n, s=5, c='blue', label='train')
+        plt.yscale('log')
         plt.xlabel('Carbon emissions (g)', self.font)
-        plt.ylabel('Number of trips (10^)', self.font)
+        plt.ylabel('Number of trips', self.font)
         plt.show()
         
         return None

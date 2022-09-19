@@ -161,7 +161,7 @@ class LevyFitting(object):
         plt.grid()
         plt.legend()
         plt.xlabel('Carbon emissions (g)', self.font)
-        plt.ylabel('Weight', self.font)
+        plt.ylabel('Probability density', self.font)
         plt.show()
         
         ''' Plot the Levy curve '''
@@ -179,6 +179,8 @@ class LevyFitting(object):
         plt.ylabel('Number of trips', self.font)
         plt.show()
         
+        print(y)
+        
         return popt
     
     
@@ -193,10 +195,8 @@ class LevyFitting(object):
         weight = n / (estimate * non_zero)
         weight /= sum(weight)
         weight[-1] = 0
-        weight[0] = 0.003
-        weight[weight > 0.003] = 0.003
-        
-        
+        weight[0] = 0.002
+        weight[weight > 0.002] = 0.002
         
         ''' Gaussian filter '''
         for i in range(20):
@@ -211,6 +211,8 @@ class LevyFitting(object):
         plt.axis([0, 10000, 0, 0.003])
         plt.scatter(bin_middles, weight, s=5, c='blue', label='train')
         plt.scatter(bin_middles, y_train_pred, s=5, c='red', label='model')
+        plt.xlabel('Carbon emissions (g)', self.font)
+        plt.ylabel('Weight', self.font)
         plt.grid()
         plt.legend()
         plt.show()
@@ -234,7 +236,7 @@ class LevyFitting(object):
                 
         plt.axis([0, 10000, 0, 900])
         plt.hist(hist_emi, self.num_bins, color='blue')
-        plt.plot(x, y, 'k', linewidth=2, c='red', label='Skew-Levy')
+        plt.plot(x, y, 'k', linewidth=2, c='red', label='Norm-Levy')
         plt.plot(x, y_levy, 'k', linewidth=2, c='black', label='Levy')
         plt.legend()
         plt.xlabel('Carbon emissions (g)', self.font)

@@ -179,9 +179,7 @@ class LevyFitting(object):
         plt.ylabel('Number of trips', self.font)
         plt.show()
         
-        print(y)
-        
-        return popt
+        return popt, y
     
     
     def Weight(self, popt_levy):
@@ -257,12 +255,11 @@ class LevyFitting(object):
         return E_norm    
     
     
-    def TravelPurpose(self, ):
+    def TravelPurpose(self):
         
         carbon_emi = self.hist_emi
                         
         purpose = np.array(self.df_5)[:, 25]
-        print(collections.Counter(purpose))
         
         commute = []
         shopping = []
@@ -328,10 +325,11 @@ class LevyFitting(object):
             n[0] = 0
             n[-1] = 0
             
-            dist_estm[key] = self.LevyFitting(n, non_zero, dict_purp[key])
+            _, dist_estm[key] = self.LevyFitting(n, non_zero, dict_purp[key])
         
         x = range(10000)
-        plt.axis([0, 10000, 0, 200])
+        
+        plt.axis([0, 10000, 0, 175])
         plt.plot(x, dist_estm['commute'], 'k', linewidth=2, c='red', label='Commute')
         plt.plot(x, dist_estm['shopping'], 'k', linewidth=2, c='blue', label='Shopping')
         plt.plot(x, dist_estm['pickup'], 'k', linewidth=2, c='green', label='Pickup')
@@ -354,7 +352,7 @@ if __name__ == "__main__":
     levy_fitting = LevyFitting()
     weight, non_zero, emission = levy_fitting.TripEmission()
     
-    popt_levy = levy_fitting.LevyFitting(weight, non_zero, emission)
+    popt_levy, _ = levy_fitting.LevyFitting(weight, non_zero, emission)
     popt_norm = levy_fitting.Weight(popt_levy)
     y_norm = levy_fitting.ChiSquare(popt_levy, popt_norm)
     

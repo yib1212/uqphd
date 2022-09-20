@@ -38,7 +38,7 @@ class LevyFitting(object):
         
         # Database location
         conn_str = (r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};'
-                    r'DBQ=data\Travel Survey\2019.accdb;')
+                    r'DBQ=data\Travel Survey\2017.accdb;')
         
         conn = pyodbc.connect(conn_str)
                     
@@ -108,11 +108,11 @@ class LevyFitting(object):
                 
         for i in range(len(mode_id)):
             if mode_id[i] == 0 or mode_id[i] == 2:
-                carbon_emi.append(cum_dist[i] * self.car_2019)
-                car_list.append(cum_dist[i] * self.car_2019)
+                carbon_emi.append(cum_dist[i] * self.car_2017)
+                car_list.append(cum_dist[i] * self.car_2017)
             elif mode_id[i] == 3:
-                carbon_emi.append(cum_dist[i] * self.bus_2019)
-                bus_list.append(cum_dist[i] * self.bus_2019)
+                carbon_emi.append(cum_dist[i] * self.bus_2017)
+                bus_list.append(cum_dist[i] * self.bus_2017)
             else:
                 carbon_emi.append(0)
                 zero_cnt += 1
@@ -150,8 +150,11 @@ class LevyFitting(object):
         bin_middles = self.bin_middles
         weight = np.array(weight) / sum(weight)
         
-        popt, pcov = curve_fit(self.Levy, bin_middles, weight, p0=( 600, 300, 100, 0))
-        print(popt)
+        # 2019 ( 600, 300, 100, 0)
+        # 2018 ( 600, 0, 15, 0)
+        
+        popt, pcov = curve_fit(self.Levy, bin_middles, weight, p0=( 600, 0, 15, 0))
+        print('Levy', popt)
         
         y_train_pred = self.Levy(bin_middles, *popt)
         
@@ -168,7 +171,6 @@ class LevyFitting(object):
         x = range(10000)
         y = self.Levy(x, *popt)
         y_all = self.Levy(bin_middles, *popt)
-        print(sum(y), sum(y_all))
         y = y / sum(y_all) * non_zero
         # y_train_pred = y_train_pred / sum(y_train_pred) * self.non_zero
         
@@ -193,22 +195,23 @@ class LevyFitting(object):
         weight = n / (estimate * non_zero)
         weight /= sum(weight)
         weight[-1] = 0
-        weight[0] = 0.0002
-        weight[weight > 0.0002] = 0.0002
-        
-        
+        weight[0] = 0.002
+        weight[weight > 0.002] = 0.002
         
         ''' Gaussian filter '''
         for i in range(20):
             weight = gaussian_filter(weight, sigma=1)
         
         ''' Fit and predict '''
-        popt_norm, pcov = curve_fit(self.Norm, bin_middles, weight, p0=(400, 100 ,7,0,0))
-        print(popt_norm)
+        # 2019 (400, 100 ,0 , 0, 0)
+        # 2018 (4000, 700 ,0 , 0, 1)
+        
+        popt_norm, pcov = curve_fit(self.Norm, bin_middles, weight, p0=(4000, 100, 0, 0, 1))
+        print('Norm', popt_norm)
         y_train_pred = self.Norm(bin_middles,*popt_norm)
         
         ''' Scatter the Weight and plot the prediction '''
-        plt.axis([0, 10000, 0, 0.0002])
+        plt.axis([0, 10000, 0, 0.002])
         plt.scatter(bin_middles, weight, s=5, c='blue', label='train')
         plt.scatter(bin_middles, y_train_pred, s=5, c='red', label='model')
         plt.grid()
@@ -250,8 +253,6 @@ class LevyFitting(object):
         div = np.divide(np.square(A - E), E, out=np.zeros_like(E), where=E!=0)
         X_2 = np.sum(div)
         
-        print(X_2)
-        
         return E_norm    
     
     
@@ -260,7 +261,6 @@ class LevyFitting(object):
         carbon_emi = self.hist_emi
                         
         purpose = np.array(self.df_5)[:, 25]
-        print(collections.Counter(purpose))
         
         commute = []
         shopping = []

@@ -38,7 +38,7 @@ class LevyFitting(object):
         
         # Database location
         conn_str = (r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};'
-                    r'DBQ=data\Travel Survey\2017.accdb;')
+                    r'DBQ=data\Travel Survey\2020.accdb;')
         
         conn = pyodbc.connect(conn_str)
                     
@@ -108,11 +108,11 @@ class LevyFitting(object):
                 
         for i in range(len(mode_id)):
             if mode_id[i] == 0 or mode_id[i] == 2:
-                carbon_emi.append(cum_dist[i] * self.car_2017)
-                car_list.append(cum_dist[i] * self.car_2017)
+                carbon_emi.append(cum_dist[i] * self.car_2020)
+                car_list.append(cum_dist[i] * self.car_2020)
             elif mode_id[i] == 3:
-                carbon_emi.append(cum_dist[i] * self.bus_2017)
-                bus_list.append(cum_dist[i] * self.bus_2017)
+                carbon_emi.append(cum_dist[i] * self.bus_2020)
+                bus_list.append(cum_dist[i] * self.bus_2020)
             else:
                 carbon_emi.append(0)
                 zero_cnt += 1
@@ -195,8 +195,8 @@ class LevyFitting(object):
         weight = n / (estimate * non_zero)
         weight /= sum(weight)
         weight[-1] = 0
-        weight[0] = 0.002
-        weight[weight > 0.002] = 0.002
+        weight[0] = 0.001
+        weight[weight > 0.001] = 0.001
         
         ''' Gaussian filter '''
         for i in range(20):

@@ -151,7 +151,7 @@ class LevyFitting(object):
         weight = np.array(weight) / sum(weight)
         
         popt, pcov = curve_fit(self.Levy, bin_middles, weight, p0=( 600, 300, 100, 0))
-        print(popt)
+        print('Levy', popt)
         
         y_train_pred = self.Levy(bin_middles, *popt)
         
@@ -182,31 +182,31 @@ class LevyFitting(object):
         return popt, y
     
     
-    def Weight(self, popt_levy):
+    def Weight(self, n, popt_levy, weight_max):
         
         bin_middles = self.bin_middles
-        n = np.array(self.n)
         non_zero = self.non_zero
         estimate = np.array(self.Levy(bin_middles, *popt_levy))
         
         ''' Compute the Weight '''
         weight = n / (estimate * non_zero)
         weight /= sum(weight)
+        print(weight)
         weight[-1] = 0
-        weight[0] = 0.002
-        weight[weight > 0.002] = 0.002
+        weight[0] = weight_max
+        weight[weight > weight_max] = weight_max
         
         ''' Gaussian filter '''
         for i in range(20):
             weight = gaussian_filter(weight, sigma=1)
         
         ''' Fit and predict '''
-        popt_norm, pcov = curve_fit(self.Norm, bin_middles, weight, p0=(4000, 300 ,7,0,0))
-        print(popt_norm)
+        popt_norm, pcov = curve_fit(self.Norm, bin_middles, weight, p0=(4000, 1000, 0, 0, 0))
+        print('Norm', popt_norm)
         y_train_pred = self.Norm(bin_middles,*popt_norm)
         
         ''' Scatter the Weight and plot the prediction '''
-        plt.axis([0, 10000, 0, 0.003])
+        plt.axis([0, 10000, 0, 1.5*weight_max])
         plt.scatter(bin_middles, weight, s=5, c='blue', label='train')
         plt.scatter(bin_middles, y_train_pred, s=5, c='red', label='model')
         plt.xlabel('Carbon emissions (g)', self.font)
@@ -313,6 +313,15 @@ class LevyFitting(object):
         
         num_bins = self.num_bins
         dist_estm = {}
+        
+        w_max = {'commute':    0.002,
+                 'shopping':   0.002,
+                 'pickup':     0.002,
+                 'recreation': 0.002,
+                 'education':  0.002, 
+                 'business':   0.002,
+                 'work':       0.002
+                 }
                 
         for key in dict_purp:
             print(key)
@@ -325,7 +334,8 @@ class LevyFitting(object):
             n[0] = 0
             n[-1] = 0
             
-            _, dist_estm[key] = self.LevyFitting(n, non_zero, dict_purp[key])
+            popt_levy, dist_estm[key] = self.LevyFitting(n, non_zero, dict_purp[key])
+            popt_norm = self.Weight(n, popt_levy, w_max[key])
         
         x = range(10000)
         
@@ -353,7 +363,7 @@ if __name__ == "__main__":
     weight, non_zero, emission = levy_fitting.TripEmission()
     
     popt_levy, _ = levy_fitting.LevyFitting(weight, non_zero, emission)
-    popt_norm = levy_fitting.Weight(popt_levy)
+    popt_norm = levy_fitting.Weight(weight, popt_levy, 0.002)
     y_norm = levy_fitting.ChiSquare(popt_levy, popt_norm)
     
     print(chi2.ppf(0.5,1000))
@@ -364,5 +374,5 @@ if __name__ == "__main__":
     #     popt_norm = levy_fitting.Weight(popt_levy)
     #     y_norm = levy_fitting.ChiSquare(popt_levy, popt_norm)
     
-    # dict_purp = levy_fitting.TravelPurpose()
-    # levy_fitting.PurposeAnalysis(dict_purp)
+    dict_purp = levy_fitting.TravelPurpose()
+    levy_fitting.PurposeAnalysis(dict_purp)

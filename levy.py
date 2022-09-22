@@ -182,26 +182,29 @@ class LevyFitting(object):
         return popt, y
     
     
-    def Weight(self, n, popt_levy, weight_max):
+    def Weight(self, n, non_zero, popt_levy, weight_max):
         
         bin_middles = self.bin_middles
-        non_zero = self.non_zero
         estimate = np.array(self.Levy(bin_middles, *popt_levy))
+        estimate[estimate < 1e-7] = 0.0
         
         ''' Compute the Weight '''
-        weight = n / (estimate * non_zero)
+        weight = n / estimate
+        weight[np.isnan(weight)] = 0
+        weight[np.isinf(weight)] = 0
         weight /= sum(weight)
-        print(weight)
+        print(estimate)
         weight[-1] = 0
         weight[0] = weight_max
         weight[weight > weight_max] = weight_max
+        
         
         ''' Gaussian filter '''
         for i in range(20):
             weight = gaussian_filter(weight, sigma=1)
         
         ''' Fit and predict '''
-        popt_norm, pcov = curve_fit(self.Norm, bin_middles, weight, p0=(4000, 1000, 0, 0, 0))
+        popt_norm, pcov = curve_fit(self.Norm, bin_middles, weight, p0=(4000, 0, 0, 0, 0))
         print('Norm', popt_norm)
         y_train_pred = self.Norm(bin_middles,*popt_norm)
         
@@ -315,12 +318,12 @@ class LevyFitting(object):
         dist_estm = {}
         
         w_max = {'commute':    0.002,
-                 'shopping':   0.002,
+                 'shopping':   0.0014,
                  'pickup':     0.002,
                  'recreation': 0.002,
                  'education':  0.002, 
-                 'business':   0.002,
-                 'work':       0.002
+                 'business':   0.0017,
+                 'work':       0.0011
                  }
                 
         for key in dict_purp:
@@ -335,7 +338,7 @@ class LevyFitting(object):
             n[-1] = 0
             
             popt_levy, dist_estm[key] = self.LevyFitting(n, non_zero, dict_purp[key])
-            popt_norm = self.Weight(n, popt_levy, w_max[key])
+            popt_norm = self.Weight(n, non_zero, popt_levy, w_max[key])
         
         x = range(10000)
         
@@ -363,7 +366,7 @@ if __name__ == "__main__":
     weight, non_zero, emission = levy_fitting.TripEmission()
     
     popt_levy, _ = levy_fitting.LevyFitting(weight, non_zero, emission)
-    popt_norm = levy_fitting.Weight(weight, popt_levy, 0.002)
+    popt_norm = levy_fitting.Weight(weight, non_zero, popt_levy, 0.002)
     y_norm = levy_fitting.ChiSquare(popt_levy, popt_norm)
     
     print(chi2.ppf(0.5,1000))

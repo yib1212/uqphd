@@ -320,7 +320,7 @@ class LevyFitting(object):
         w_max = {'commute':    0.002,
                  'shopping':   0.0014,
                  'pickup':     0.002,
-                 'recreation': 0.002,
+                 'recreation': 0.0003,
                  'education':  0.002, 
                  'business':   0.0017,
                  'work':       0.0011

@@ -193,7 +193,6 @@ class LevyFitting(object):
         weight[np.isnan(weight)] = 0
         weight[np.isinf(weight)] = 0
         weight /= sum(weight)
-        print(estimate)
         weight[-1] = 0
         weight[0] = weight_max
         weight[weight > weight_max] = weight_max
@@ -250,12 +249,27 @@ class LevyFitting(object):
         E_norm = np.array(self.Norm(bin_middles, *popt_norm))
         E = E_levy * E_norm
         E = E / np.sum(E) * non_zero
+        
         div = np.divide(np.square(A - E), E, out=np.zeros_like(E), where=E!=0)
         X_2 = np.sum(div)
         
-        print(X_2)
+        for i in range(20):
+            A = gaussian_filter(A, sigma=1)
+            
+        A = np.log10(A)
+        E = np.log10(E)
         
-        return E_norm    
+        plt.axis([0, 10000, 0, 3.5])
+        plt.plot(bin_middles, A, 'k', linewidth=2, c='red', label='Norm-Levy')
+        plt.plot(bin_middles, E, 'k', linewidth=2, c='blue', label='Levy')
+        plt.legend()
+        plt.xlabel('Carbon emissions (g)', self.font)
+        plt.ylabel('Number of trips', self.font)
+        plt.show()
+        
+        print('Chi-Square:', X_2)
+        
+        return A, E, div
     
     
     def TravelPurpose(self):
@@ -316,6 +330,7 @@ class LevyFitting(object):
         
         num_bins = self.num_bins
         dist_estm = {}
+        dist_nlevy = {}
         
         w_max = {'commute':    0.002,
                  'shopping':   0.0014,
@@ -325,6 +340,8 @@ class LevyFitting(object):
                  'business':   0.0017,
                  'work':       0.0011
                  }
+        
+        x = range(10000)
                 
         for key in dict_purp:
             print(key)
@@ -339,8 +356,15 @@ class LevyFitting(object):
             
             popt_levy, dist_estm[key] = self.LevyFitting(n, non_zero, dict_purp[key])
             popt_norm = self.Weight(n, non_zero, popt_levy, w_max[key])
-        
-        x = range(10000)
+            
+            ''' Plot the Levy and Skew-levy curve '''
+            
+            y_levy = np.array(self.Levy(x, *popt_levy))
+            y_norm = np.array(self.Norm(x, *popt_norm))
+            y = y_levy * y_norm
+            y_levy = y_levy / np.sum(y_levy) * non_zero * 10
+            y = y / np.sum(y) * np.sum(y_levy)
+            dist_nlevy[key] = y
         
         plt.axis([0, 10000, 0, 175])
         plt.plot(x, dist_estm['commute'], 'k', linewidth=2, c='red', label='Commute')
@@ -350,6 +374,19 @@ class LevyFitting(object):
         plt.plot(x, dist_estm['education'], 'k', linewidth=2, c='black', label='Education')
         plt.plot(x, dist_estm['business'], 'k', linewidth=2, c='orange', label='Personal business')
         plt.plot(x, dist_estm['work'], 'k', linewidth=2, c='purple', label='Work related')
+        plt.legend()
+        plt.xlabel('Carbon emissions (g)', self.font)
+        plt.ylabel('Number of trips', self.font)
+        plt.show()
+        
+        plt.axis([0, 10000, 0, 240])
+        plt.plot(x, dist_nlevy['commute'], 'k', linewidth=2, c='red', label='Commute')
+        plt.plot(x, dist_nlevy['shopping'], 'k', linewidth=2, c='blue', label='Shopping')
+        plt.plot(x, dist_nlevy['pickup'], 'k', linewidth=2, c='green', label='Pickup')
+        plt.plot(x, dist_nlevy['recreation'], 'k', linewidth=2, c='yellow', label='Recreation')
+        plt.plot(x, dist_nlevy['education'], 'k', linewidth=2, c='black', label='Education')
+        plt.plot(x, dist_nlevy['business'], 'k', linewidth=2, c='orange', label='Personal business')
+        plt.plot(x, dist_nlevy['work'], 'k', linewidth=2, c='purple', label='Work related')
         plt.legend()
         plt.xlabel('Carbon emissions (g)', self.font)
         plt.ylabel('Number of trips', self.font)
@@ -367,9 +404,9 @@ if __name__ == "__main__":
     
     popt_levy, _ = levy_fitting.LevyFitting(weight, non_zero, emission)
     popt_norm = levy_fitting.Weight(weight, non_zero, popt_levy, 0.002)
-    y_norm = levy_fitting.ChiSquare(popt_levy, popt_norm)
+    A, E, div = levy_fitting.ChiSquare(popt_levy, popt_norm)
     
-    print(chi2.ppf(0.5,1000))
+    print(chi2.ppf(0.05, 600))
     
     # for i in range(10):
     #     weight /= y_norm
@@ -377,5 +414,5 @@ if __name__ == "__main__":
     #     popt_norm = levy_fitting.Weight(popt_levy)
     #     y_norm = levy_fitting.ChiSquare(popt_levy, popt_norm)
     
-    dict_purp = levy_fitting.TravelPurpose()
-    levy_fitting.PurposeAnalysis(dict_purp)
+    # dict_purp = levy_fitting.TravelPurpose()
+    # levy_fitting.PurposeAnalysis(dict_purp)

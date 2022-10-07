@@ -220,6 +220,34 @@ class LevyFitting(object):
         return popt_norm
     
     
+    def KSTest(self, popt_levy, popt_norm):
+        
+        non_zero = self.non_zero
+        bin_middles = self.bin_middles
+        hist_emi =self.hist_emi
+                
+        ''' Plot the Levy and Skew-levy curve '''
+        x = bin_middles
+        y_levy = np.array(self.Levy(x, *popt_levy))
+        y_norm = np.array(self.Norm(x, *popt_norm))
+        y = y_levy * y_norm
+        y_levy = y_levy / np.sum(y_levy) * non_zero
+        y = y / np.sum(y) * np.sum(y_levy)
+        
+        pd.DataFrame(y).to_csv('result_KS_pred.csv')
+        pd.DataFrame(self.n).to_csv('result_KS_obse.csv')
+        
+        plt.axis([0, 10000, 0, 900])
+        plt.plot(x, y, 'k', linewidth=2, c='red', label='Norm-Levy')
+        plt.plot(bin_middles, self.n, 'k', linewidth=2, c='blue', label='Levy')
+        plt.legend()
+        plt.xlabel('Carbon emissions (g)', self.font)
+        plt.ylabel('Number of trips', self.font)
+        plt.show()
+        
+        return None
+    
+    
     def ChiSquare(self, popt_levy, popt_norm):
         
         non_zero = self.non_zero
@@ -249,6 +277,7 @@ class LevyFitting(object):
         E_norm = np.array(self.Norm(bin_middles, *popt_norm))
         E = E_levy * E_norm
         E = E / np.sum(E) * non_zero
+        Y = np.dot(-0.000245, bin_middles) + 2.7
         
         div = np.divide(np.square(A - E), E, out=np.zeros_like(E), where=E!=0)
         X_2 = np.sum(div)
@@ -260,11 +289,12 @@ class LevyFitting(object):
         E = np.log10(E)
         
         plt.axis([0, 10000, 0, 3.5])
-        plt.plot(bin_middles, A, 'k', linewidth=2, c='red', label='Norm-Levy')
-        plt.plot(bin_middles, E, 'k', linewidth=2, c='blue', label='Levy')
+        plt.plot(bin_middles, A, 'k', linewidth=2, c='red', label='Obsevation')
+        plt.plot(bin_middles, E, '--', linewidth=2, c='blue', label='Norm-Levy')
+        plt.plot(bin_middles, Y, ':', linewidth=2, c='green', label='Exponetial')
         plt.legend()
         plt.xlabel('Carbon emissions (g)', self.font)
-        plt.ylabel('Number of trips', self.font)
+        plt.ylabel('Number of trips (10^)', self.font)
         plt.show()
         
         print('Chi-Square:', X_2)
@@ -404,9 +434,9 @@ if __name__ == "__main__":
     
     popt_levy, _ = levy_fitting.LevyFitting(weight, non_zero, emission)
     popt_norm = levy_fitting.Weight(weight, non_zero, popt_levy, 0.002)
-    A, E, div = levy_fitting.ChiSquare(popt_levy, popt_norm)
-    
-    print(chi2.ppf(0.05, 600))
+    # A, E, div = levy_fitting.ChiSquare(popt_levy, popt_norm)
+    levy_fitting.KSTest(popt_levy, popt_norm)
+    # print(chi2.ppf(0.05, 600))
     
     # for i in range(10):
     #     weight /= y_norm

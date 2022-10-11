@@ -234,18 +234,36 @@ class LevyFitting(object):
         y_levy = y_levy / np.sum(y_levy) * non_zero
         y = y / np.sum(y) * np.sum(y_levy)
         
-        pd.DataFrame(y).to_csv('result_KS_pred.csv')
-        pd.DataFrame(self.n).to_csv('result_KS_obse.csv')
+        y = y / np.sum(y)
+        n = self.n / np.sum(self.n)
         
-        plt.axis([0, 10000, 0, 900])
-        plt.plot(x, y, 'k', linewidth=2, c='red', label='Norm-Levy')
-        plt.plot(bin_middles, self.n, 'k', linewidth=2, c='blue', label='Levy')
+        cum_y = 0
+        cum_n = 0
+        diff = 0
+        max_diff = 0
+        cum_y_list = np.zeros(x.shape)
+        cum_n_list = np.zeros(x.shape)
+        
+        for i in range(1000):
+            cum_y += y[i]
+            cum_n += n[i]
+            cum_y_list[i] = cum_y
+            cum_n_list[i] = cum_n
+            diff = abs(cum_y - cum_n)
+            if diff > max_diff:
+                max_diff = diff
+            
+        print(max_diff)
+        
+        plt.axis([0, 10000, 0, 1])
+        plt.plot(x, cum_y_list, '-', linewidth=2, c='red', label='Fitting Result')
+        plt.plot(x, cum_n_list, ':', linewidth=2, c='blue', label='Observation')
         plt.legend()
-        plt.xlabel('Carbon emissions (g)', self.font)
+        plt.xlabel('CDF', self.font)
         plt.ylabel('Number of trips', self.font)
         plt.show()
         
-        return None
+        return y, n
     
     
     def ChiSquare(self, popt_levy, popt_norm):
@@ -435,7 +453,7 @@ if __name__ == "__main__":
     popt_levy, _ = levy_fitting.LevyFitting(weight, non_zero, emission)
     popt_norm = levy_fitting.Weight(weight, non_zero, popt_levy, 0.002)
     # A, E, div = levy_fitting.ChiSquare(popt_levy, popt_norm)
-    levy_fitting.KSTest(popt_levy, popt_norm)
+    y, n = levy_fitting.KSTest(popt_levy, popt_norm)
     # print(chi2.ppf(0.05, 600))
     
     # for i in range(10):

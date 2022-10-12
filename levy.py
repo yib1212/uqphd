@@ -259,8 +259,8 @@ class LevyFitting(object):
         plt.plot(x, cum_y_list, '-', linewidth=2, c='red', label='Fitting Result')
         plt.plot(x, cum_n_list, ':', linewidth=2, c='blue', label='Observation')
         plt.legend()
-        plt.xlabel('CDF', self.font)
-        plt.ylabel('Number of trips', self.font)
+        plt.xlabel('Carbon emissions (g)', self.font)
+        plt.ylabel('CDF', self.font)
         plt.show()
         
         return y, n

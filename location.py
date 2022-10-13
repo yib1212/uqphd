@@ -209,7 +209,7 @@ class CarbonEachTrip(object):
         return time_ave, emi_ave, num_cnt
     
     
-    def FiveTiers(self, carbon_emi, emi_ave, num_cnt):
+    def FiveTiers(self, c, time_ave, emi_ave, num_cnt):
         
         # 0, 1015, 1255, 1535, 1750
         id_0 = []
@@ -219,6 +219,18 @@ class CarbonEachTrip(object):
         id_4 = []
         id_5 = []
         
+        t1 = []
+        t2 = []
+        t3 = []
+        t4 = []
+        t5 = []
+        
+        e1 = []
+        e2 = []
+        e3 = []
+        e4 = []
+        e5 = []
+        
         sa2_main = self.sa2_main
         sa2_array = self.sa2_array
         
@@ -227,14 +239,24 @@ class CarbonEachTrip(object):
                 id_0.append(sa2_main[i])
             elif emi_ave[i] < 1015:
                 id_1.append(sa2_main[i])
+                t1.append(time_ave[i])
+                e1.append(emi_ave[i])
             elif emi_ave[i] < 1255:
                 id_2.append(sa2_main[i])
+                t2.append(time_ave[i])
+                e2.append(emi_ave[i])
             elif emi_ave[i] < 1535:
                 id_3.append(sa2_main[i])
+                t3.append(time_ave[i])
+                e3.append(emi_ave[i])
             elif emi_ave[i] < 1750:
                 id_4.append(sa2_main[i])
+                t4.append(time_ave[i])
+                e4.append(emi_ave[i])
             else:
                 id_5.append(sa2_main[i])
+                t5.append(time_ave[i])
+                e5.append(emi_ave[i])
         
         data_1 = []
         data_2 = []
@@ -253,10 +275,22 @@ class CarbonEachTrip(object):
                 data_4.append(carbon_emi[j])
             elif sa2_array[j] in id_5:
                 data_5.append(carbon_emi[j])
+                
+        plt.axis([0, 40, 0, 5000])
+        # plt.title('Average carbon emission and travel time of different SA2 regions', self.font)
+        plt.xlabel('Average travel time (min)', self.font)
+        plt.ylabel('Average carbon emission (g)', self.font)
+        plt.scatter(t1, e1, marker='.', s=10, color=(0.00, 0.00, 1.00), label='0-1014 g')
+        plt.scatter(t2, e2, marker='.', s=10, color=(0.25, 0.00, 0.75), label='1015-1254 g')
+        plt.scatter(t3, e3, marker='.', s=10, color=(0.50, 0.00, 0.50), label='1255-1534 g')
+        plt.scatter(t4, e4, marker='.', s=10, color=(0.75, 0.00, 0.25), label='1535-1749 g')
+        plt.scatter(t5, e5, marker='.', s=10, color=(1.00, 0.00, 0.00), label='Over 1750g')
+        plt.legend()
+        plt.show()
         
-        return data_1, data_2, data_3, data_4, data_5
+        return id_0, data_1, data_2, data_3, data_4, data_5
     
-    
+
     def FiveTiersEmission(self, data):
         
         ''' Compute the carbon emission for each trip. '''
@@ -424,8 +458,7 @@ class CarbonEachTrip(object):
             y_norm[i] = np.array(self.Norm(x, *popt_n))
             y[i] = y_levy[i] * y_norm[i]
             y[i] /= np.sum(y[i])
-            print(np.sum(y[i]))
-        
+            
         plt.axis([0, 6000, 0, 0.015])
 
         plt.plot(x, y[0], 'k', linewidth=2, color=(0, 0, 1), label='0-1014 g')
@@ -446,7 +479,7 @@ if __name__ == "__main__":
     emission = CarbonEachTrip()
     carbon_emi, car_list = emission.TripEmission()
     time_ave, emi_ave, num_cnt = emission.RegionTime(carbon_emi)
-    d1, d2, d3, d4, d5 = emission.FiveTiers(carbon_emi, emi_ave, num_cnt)
+    d0, d1, d2, d3, d4, d5 = emission.FiveTiers(carbon_emi, time_ave, emi_ave, num_cnt)
     
     weight, non_zero, emi = emission.FiveTiersEmission(d1)
     popt_levy, _ = emission.LevyFitting(weight, non_zero, emi)

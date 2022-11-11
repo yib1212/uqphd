@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 from objective_1 import CarbonEmission
 from scipy.stats import levy
+from scipy.stats import lognorm
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import scipy.special as sp
@@ -66,6 +67,13 @@ class LevyFitting(object):
         normpdf = (1/(sigma*np.sqrt(2*math.pi)))*np.exp(-(np.power((x-mu),2)/(2*np.power(sigma,2))))
         
         return a * normpdf + c
+    
+    
+    def Lognorm(self, x, sigma, loc, scale):
+        
+        lognorm_fit = lognorm.pdf(x, sigma, loc, scale)
+        
+        return lognorm_fit
     
     
     def Levy(self, x, sigma, mu, a, c):
@@ -293,9 +301,10 @@ class LevyFitting(object):
         A = np.array(self.n)
         E_levy = np.array(self.Levy(bin_middles, *popt_levy))
         E_norm = np.array(self.Norm(bin_middles, *popt_norm))
-        E = E_levy * E_norm
+        # E = E_levy * E_norm
+        E = E_levy
         E = E / np.sum(E) * non_zero
-        Y = np.dot(-0.000245, bin_middles) + 2.7
+        Y = np.dot(-0.000235, bin_middles) + 2.6
         
         div = np.divide(np.square(A - E), E, out=np.zeros_like(E), where=E!=0)
         X_2 = np.sum(div)
@@ -305,13 +314,14 @@ class LevyFitting(object):
             
         A = np.log10(A)
         E = np.log10(E)
+        bin_middles = np.log10(bin_middles)
         
-        plt.axis([0, 10000, 0, 3.5])
+        plt.axis([2, 4, 0, 3.5])
         plt.plot(bin_middles, A, 'k', linewidth=2, c='red', label='Obsevation')
-        plt.plot(bin_middles, E, '--', linewidth=2, c='blue', label='Norm-Levy')
+        plt.plot(bin_middles, E, '--', linewidth=2, c='blue', label='Levy')
         plt.plot(bin_middles, Y, ':', linewidth=2, c='green', label='Exponetial')
         plt.legend()
-        plt.xlabel('Carbon emissions (g)', self.font)
+        plt.xlabel('Carbon emissions (10^ g)', self.font)
         plt.ylabel('Number of trips (10^)', self.font)
         plt.show()
         
@@ -452,7 +462,7 @@ if __name__ == "__main__":
     
     popt_levy, _ = levy_fitting.LevyFitting(weight, non_zero, emission)
     popt_norm = levy_fitting.Weight(weight, non_zero, popt_levy, 0.002)
-    # A, E, div = levy_fitting.ChiSquare(popt_levy, popt_norm)
+    A, E, div = levy_fitting.ChiSquare(popt_levy, popt_norm)
     y, n = levy_fitting.KSTest(popt_levy, popt_norm)
     # print(chi2.ppf(0.05, 600))
     

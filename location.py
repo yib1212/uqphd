@@ -439,16 +439,21 @@ class CarbonEachTrip(object):
         y = np.zeros((5, 1000))
         x = self.bin_middles
         
+        means = np.zeros(5)
+        medians = np.zeros(5)
+        var = np.zeros(5)
+        std = np.zeros(5)
+        
         popt_levy = [[602.89515979,   2.2318219,   15.1546452,    0.        ],
                      [749.46859066, -19.58618845,  14.91503241,   0.        ],
                      [745.65785775,  -6.38087173,  14.35999573,   0.        ],
                      [907.92054349,  -8.29285683,  14.20607632,   0.        ],
                      [1288.0559728,  -93.85030177, 14.70759107,   0.        ]]
-        popt_norm = [[ 2.63031549e+03, -7.59316270e+02,  0.00000000e+00,  7.90928024e-05,  1.41643429e+01],
-                     [ 2.25252221e+03, 4.72157706e+02, 0.00000000e+00, 2.92497623e-04, 1.14909181e+01],
-                     [ 4.02165086e+03, -5.43081294e+01,  0.00000000e+00,  1.34036546e-04,  1.32047017e+01],
-                     [2.85036894e+03, 1.86329002e+03, 0.00000000e+00, 1.17562255e-04, 5.34086622e+00],
-                     [3.67379162e+03, 1.89542882e+03, 0.00000000e+00, 2.46610418e-04, 1.08381986e+01]]
+        popt_norm = [[ 2.63031549e+03, -7.59316270e+02, 0.00000000e+00, 7.90928024e-05, 1.41643429e+01],
+                     [ 2.25252221e+03,  4.72157706e+02, 0.00000000e+00, 2.92497623e-04, 1.14909181e+01],
+                     [ 4.02165086e+03, -5.43081294e+01, 0.00000000e+00, 1.34036546e-04, 1.32047017e+01],
+                     [ 2.85036894e+03,  1.86329002e+03, 0.00000000e+00, 1.17562255e-04, 5.34086622e+00],
+                     [ 3.67379162e+03,  1.89542882e+03, 0.00000000e+00, 2.46610418e-04, 1.08381986e+01]]
         non_zero = [7414, 11748, 21972, 24442, 18162]
         
         for i in range(5):
@@ -458,6 +463,11 @@ class CarbonEachTrip(object):
             y_norm[i] = np.array(self.Norm(x, *popt_n))
             y[i] = y_levy[i] * y_norm[i]
             y[i] /= np.sum(y[i])
+            means[i] = self.Mean(y[i])
+            medians[i] = self.Median(y[i])
+            var[i] = self.Variance(y[i], means[i])
+            std[i] = np.sqrt(var[i])
+            
             
         plt.axis([0, 6000, 0, 0.015])
 
@@ -471,7 +481,51 @@ class CarbonEachTrip(object):
         plt.ylabel('PDF', self.font)
         plt.show()
         
+        print(means, medians, var, std)
         
+        return None
+        
+    
+    def Mean(self, y):
+        
+        x = self.bin_middles
+        sum_x = np.sum(x * y)
+        mean_x = sum_x / np.sum(y)
+        
+        return mean_x
+    
+    
+    def Median(self, y):
+        
+        x = self.bin_middles
+        sum_y_med = np.sum(y) / 2
+        median_x = 0
+        sum_y = 0
+        for i in range(len(x)):
+            if sum_y < sum_y_med:
+                sum_y += y[i]
+                median_x = x[i]
+        
+        return median_x
+        
+    def Variance(self, y, mean):
+        
+        x = self.bin_middles
+        sum_y = np.sum(y)
+        sum_sqr = 0
+        for i in range(len(x)):
+            sum_sqr += y[i] * (x[i] - mean) ** 2
+        var = sum_sqr / sum_y
+        
+        return var
+    
+    # Pearson’s median skewness
+    def Skew(self, ):
+        
+        
+        
+        return 
+     
         
         
 if __name__ == "__main__":

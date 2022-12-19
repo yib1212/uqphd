@@ -439,10 +439,12 @@ class CarbonEachTrip(object):
         y = np.zeros((5, 1000))
         x = self.bin_middles
         
-        means = np.zeros(5)
-        medians = np.zeros(5)
+        mean = np.zeros(5)
+        median = np.zeros(5)
         var = np.zeros(5)
         std = np.zeros(5)
+        skew1 = np.zeros(5)
+        skew2 = np.zeros(5)
         
         popt_levy = [[602.89515979,   2.2318219,   15.1546452,    0.        ],
                      [749.46859066, -19.58618845,  14.91503241,   0.        ],
@@ -455,6 +457,7 @@ class CarbonEachTrip(object):
                      [ 2.85036894e+03,  1.86329002e+03, 0.00000000e+00, 1.17562255e-04, 5.34086622e+00],
                      [ 3.67379162e+03,  1.89542882e+03, 0.00000000e+00, 2.46610418e-04, 1.08381986e+01]]
         non_zero = [7414, 11748, 21972, 24442, 18162]
+        mode = [203, 230, 242, 294, 335]
         
         for i in range(5):
             popt_l = popt_levy[i]
@@ -463,12 +466,12 @@ class CarbonEachTrip(object):
             y_norm[i] = np.array(self.Norm(x, *popt_n))
             y[i] = y_levy[i] * y_norm[i]
             y[i] /= np.sum(y[i])
-            means[i] = self.Mean(y[i])
-            medians[i] = self.Median(y[i])
-            var[i] = self.Variance(y[i], means[i])
+            mean[i] = self.Mean(y[i])
+            median[i] = self.Median(y[i])
+            var[i] = self.Variance(y[i], mean[i])
             std[i] = np.sqrt(var[i])
-            
-            
+            skew1[i], skew2[i] = self.Skew(mean[i], median[i], std[i], mode[i])
+        
         plt.axis([0, 6000, 0, 0.015])
 
         plt.plot(x, y[0], 'k', linewidth=2, color=(0, 0, 1), label='0-1014 g')
@@ -481,7 +484,7 @@ class CarbonEachTrip(object):
         plt.ylabel('PDF', self.font)
         plt.show()
         
-        print(means, medians, var, std)
+        print(mean, median, var, std, skew1, skew2)
         
         return None
         
@@ -519,12 +522,13 @@ class CarbonEachTrip(object):
         
         return var
     
-    # Pearson’s median skewness
-    def Skew(self, ):
+    # Pearson’s mode/median skewness
+    def Skew(self, mean, med, std, mode):
         
+        skew1 = (mean - med) / std
+        skew2 = 3 * (mean - med) / std
         
-        
-        return 
+        return skew1, skew2
      
         
         

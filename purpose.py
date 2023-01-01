@@ -13,11 +13,13 @@ import pandas as pd
 from objective_1 import CarbonEmission
 from scipy.stats import levy
 import matplotlib.pyplot as plt
+from matplotlib import cm
 from scipy.optimize import curve_fit
 import scipy.special as sp
 from sklearn.model_selection import train_test_split
 from scipy.stats import chi2
 from scipy.ndimage import gaussian_filter
+from matplotlib.collections import PolyCollection
 
 
 class LevyFitting(object):
@@ -38,7 +40,7 @@ class LevyFitting(object):
         
         # Database location
         conn_str = (r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};'
-                    r'DBQ=data\Travel Survey\2018-21_pooled_seq_qts_erv1.0.accdb;')
+                    r'DBQ=data\Travel Survey\2017.accdb;')
         
         conn = pyodbc.connect(conn_str)
                     
@@ -108,11 +110,11 @@ class LevyFitting(object):
                 
         for i in range(len(mode_id)):
             if mode_id[i] == 0 or mode_id[i] == 2:
-                carbon_emi.append(cum_dist[i] * self.car_ave)
-                car_list.append(cum_dist[i] * self.car_ave)
+                carbon_emi.append(cum_dist[i] * self.car_2017)
+                car_list.append(cum_dist[i] * self.car_2017)
             elif mode_id[i] == 3:
-                carbon_emi.append(cum_dist[i] * self.bus_ave)
-                bus_list.append(cum_dist[i] * self.bus_ave)
+                carbon_emi.append(cum_dist[i] * self.bus_2017)
+                bus_list.append(cum_dist[i] * self.bus_2017)
             else:
                 carbon_emi.append(0)
                 zero_cnt += 1
@@ -220,42 +222,7 @@ class LevyFitting(object):
         
         return popt_norm
     
-    
-    def ChiSquare(self, popt_levy, popt_norm):
-        
-        non_zero = self.non_zero
-        bin_middles = self.bin_middles
-        hist_emi =self.hist_emi
-                
-        ''' Plot the Levy and Skew-levy curve '''
-        x = range(10000)
-        y_levy = np.array(self.Levy(x, *popt_levy))
-        y_norm = np.array(self.Norm(x, *popt_norm))
-        y = y_levy * y_norm
-        y_levy = y_levy / np.sum(y_levy) * non_zero * 10
-        y = y / np.sum(y) * np.sum(y_levy)
-                
-        plt.axis([0, 10000, 0, 900])
-        plt.hist(hist_emi, self.num_bins, color='blue')
-        plt.plot(x, y, 'k', linewidth=2, c='red', label='Norm-Levy')
-        plt.plot(x, y_levy, 'k', linewidth=2, c='black', label='Levy')
-        plt.legend()
-        plt.xlabel('Carbon emissions (g)', self.font)
-        plt.ylabel('Number of trips', self.font)
-        plt.show()
-        
-        ''' Compute the Chi-square '''
-        A = np.array(self.n)
-        E_levy = np.array(self.Levy(bin_middles, *popt_levy))
-        E_norm = np.array(self.Norm(bin_middles, *popt_norm))
-        E = E_levy * E_norm
-        E = E / np.sum(E) * non_zero
-        div = np.divide(np.square(A - E), E, out=np.zeros_like(E), where=E!=0)
-        X_2 = np.sum(div)
-        
-        return E_norm    
-    
-    
+
     def TravelPurpose(self):
         
         carbon_emi = self.hist_emi
@@ -314,23 +281,36 @@ class LevyFitting(object):
         
         num_bins = self.num_bins
         dist_estm = {}
+        popt_levy = {}
+        popt_norm = {}
+        non_zero = {}
+        levy_res = {}
+        
+        # w_max = {'commute':    0.002,
+        #           'shopping':   0.0014,
+        #           'pickup':     0.0015,
+        #           'recreation': 0.0003,
+        #           'education':  0.002, 
+        #           'business':   0.0017,
+        #           'work':       0.0011
+        #           }
         
         w_max = {'commute':    0.002,
-                 'shopping':   0.0014,
-                 'pickup':     0.002,
-                 'recreation': 0.002,
-                 'education':  0.002, 
-                 'business':   0.0017,
-                 'work':       0.0011
-                 }
-        
-        p0 = {'commute':    (2726, 2738, 0, 0, 3e-4),
-              'shopping':   (3683, -279, 0, 0, 7e-5),
-              'pickup':     (3042, -320, 0, 0, 9e-5),
+                  'shopping':   0.0014,
+                  'pickup':     0.0002,
+                  'recreation': 0.0003,
+                  'education':  0.002, 
+                  'business':   0.0017,
+                  'work':       0.0011
+                  }
+
+        p0 = {'commute':    (2726, 2738, 0, 0, 8),
+              'shopping':   (3683, -2790, 0, 0, 10),
+              'pickup':     (3200, -500, 0, 0, 5),
               'recreation': (3042, -320, 0, 0, 9e-5),
-              'education':  (3042, -320, 0, 0, 9e-5), 
-              'business':   (3042, -320, 0, 0, 9e-5),
-              'work':       (3042, -320, 0, 0, 9e-5)
+              'education':  (2000, 500, 0, 0, 5), 
+              'business':   (4000, -1000, 0, 0, 15),
+              'work':       (3042, 1400, 0, 0, 6)
               }
                 
         for key in dict_purp:
@@ -340,16 +320,28 @@ class LevyFitting(object):
             n, _, _ = plt.hist(dict_purp[key], num_bins)
             plt.show()
         
-            non_zero = len(dict_purp[key]) - n[0] - n[-1]
+            non_zero[key] = len(dict_purp[key]) - n[0] - n[-1]
             n[0] = 0
             n[-1] = 0
             
-            popt_levy, dist_estm[key] = self.LevyFitting(n, non_zero, dict_purp[key])
-            popt_norm = self.Weight(n, non_zero, popt_levy, w_max[key], p0[key])
+            popt_levy[key], dist_estm[key] = self.LevyFitting(n, non_zero[key], dict_purp[key])
+            popt_norm[key] = self.Weight(n, non_zero[key], popt_levy[key], w_max[key], p0[key])
         
+        for key in dict_purp:
+            levy_res[key] = np.log10(dist_estm[key])
+            
         x = range(10000)
         
-        plt.axis([0, 10000, 0, 175])
+        for key in dict_purp:
+            
+            y_levy = np.array(self.Levy(x, *popt_levy[key]))
+            y_norm = np.array(self.Norm(x, *popt_norm[key]))
+            
+            y = y_levy * y_norm
+            dist_estm[key] = y / np.sum(y) * non_zero[key] * 10
+        
+        
+        plt.axis([0, 10000, 0, 240])
         plt.plot(x, dist_estm['commute'], 'k', linewidth=2, c='red', label='Commute')
         plt.plot(x, dist_estm['shopping'], 'k', linewidth=2, c='blue', label='Shopping')
         plt.plot(x, dist_estm['pickup'], 'k', linewidth=2, c='green', label='Pickup')
@@ -357,12 +349,113 @@ class LevyFitting(object):
         plt.plot(x, dist_estm['education'], 'k', linewidth=2, c='black', label='Education')
         plt.plot(x, dist_estm['business'], 'k', linewidth=2, c='orange', label='Personal business')
         plt.plot(x, dist_estm['work'], 'k', linewidth=2, c='purple', label='Work related')
+        
         plt.legend()
         plt.xlabel('Carbon emissions (g)', self.font)
         plt.ylabel('Number of trips', self.font)
         plt.show()
         
+        
+        x = np.log10(x)
+        for key in dict_purp:
+            dist_estm[key] = np.log10(dist_estm[key])
+                    
+        plt.axis([2, 4, 0, 2.4])
+        plt.plot(x, dist_estm['commute'], 'k', linewidth=1, c='red', label='Commute')
+        plt.plot(x, dist_estm['shopping'], 'k', linewidth=1, c='blue', label='Shopping')
+        plt.plot(x, dist_estm['pickup'], 'k', linewidth=1, c='green', label='Pickup')
+        plt.plot(x, dist_estm['recreation'], 'k', linewidth=1, c='yellow', label='Recreation')
+        plt.plot(x, dist_estm['education'], 'k', linewidth=1, c='black', label='Education')
+        plt.plot(x, dist_estm['business'], 'k', linewidth=1, c='orange', label='Personal business')
+        plt.plot(x, dist_estm['work'], 'k', linewidth=1, c='purple', label='Work related')
+        plt.plot(x, levy_res['commute'], '--', linewidth=1, c='red')
+        plt.plot(x, levy_res['shopping'], '--', linewidth=1, c='blue')
+        plt.plot(x, levy_res['pickup'], '--', linewidth=1, c='green')
+        plt.plot(x, levy_res['recreation'], '--', linewidth=1, c='yellow')
+        plt.plot(x, levy_res['education'], '--', linewidth=1, c='black')
+        plt.plot(x, levy_res['business'], '--', linewidth=1, c='orange')
+        plt.plot(x, levy_res['work'], '--', linewidth=1, c='purple')
+        plt.legend()
+        plt.xlabel('Carbon emissions (10^g)', self.font)
+        plt.ylabel('Number of trips (10^)', self.font)
+        plt.show()
+        
+        
+        return np.sum(dist_estm['commute'])
+    
+    
+    def polygon_under_graph(self, x, y):
+        """
+        Construct the vertex list which defines the polygon filling the space under
+        the (x, y) line graph. This assumes x is in ascending order.
+        """
+        return [(x[0], 0.), *zip(x, y), (x[-1], 0.)]
+    
+    
+    def LocationResults(self):
+        
+        y_levy = np.zeros((4, 1000))
+        y_norm = np.zeros((4, 1000))
+        y = np.zeros((4, 1000))
+        x = self.bin_middles
+        
+        popt_levy = [[2484.79562213, -155.90210124, 17.16763672, 0.],
+                     [2532.52256689, -172.26129494, 17.12420064, 0.],
+                     [2630.65370779, -197.52188536, 17.28904614, 0.],
+                     [2352.04643379, -151.52520698, 16.93699735, 0.]]
+        popt_norm = [[2703.49331, 2556.60419, 0.00000000e+00, 0.000349698516, 7.58381501],
+                     [3150.55305, 2848.96081, 0.00000000e+00, 0.000140834215, 10.3897752],
+                     [2749.19574, 2794.73387, 0.00000000e+00, 0.000301396624, 7.76366877],
+                     [2784.95686, 2664.82151, 0.00000000e+00, 0.000227880113, 8.93355848]]
+        sum_y = [69559.16388171402, 66969.2821200769, 48689.59643118815, 52139.42086463295]
+        
+        for i in range(4):
+            popt_l = popt_levy[i]
+            popt_n = popt_norm[i]
+            y_levy[i] = np.array(self.Levy(x, *popt_l))
+            y_norm[i] = np.array(self.Norm(x, *popt_n))
+            y[i] = y_levy[i] * y_norm[i]
+            y[i] /= np.sum(y[i]) 
+            y[i] = y[i] * sum_y[i] / 10
+            
+        plt.axis([0, 6000, 0, 0.004])
+
+        plt.plot(x, y[0], 'k', linewidth=2, color=(0.0, 0, 1.0), label='2017-2018')
+        plt.plot(x, y[1], 'k', linewidth=2, color=(0.3, 0, 0.6), label='2018-2019')
+        plt.plot(x, y[2], 'k', linewidth=2, color=(0.6, 0, 0.3), label='2019-2020')
+        plt.plot(x, y[3], 'k', linewidth=2, color=(1.0, 0, 0.0), label='2020-2021')
+        plt.legend()
+        plt.xlabel('Carbon emissions (g)', self.font)
+        plt.ylabel('PDF', self.font)
+        plt.show()
+        
+        
+        ax = plt.figure(figsize=(10,6)).add_subplot(projection='3d')
+        
+        years = range(1, 5)
+        
+        # verts[i] is a list of (x, y) pairs defining polygon i.
+        gamma = np.vectorize(math.gamma)
+        verts = [self.polygon_under_graph(x, y[i-1])
+                 for i in years]
+        
+        viridis = cm.get_cmap('plasma', 12)
+        facecolors = viridis.colors
+        facecolors = [[0.050383, 0.029803, 0.527975, 1.      ], [0.241396, 0.014979, 0.610259, 1.      ], [0.387183, 0.001434, 0.654177, 1.      ], [0.523633, 0.024532, 0.652901, 1.      ]]
+        print(facecolors)
+        
+        poly = PolyCollection(verts, facecolors=facecolors, alpha=.7)
+        ax.add_collection3d(poly, zs=years, zdir='y')
+        
+        ax.set(xlim=(0, 10000), ylim=(1, 4.5), zlim=(0, 25),
+               
+               xlabel='Carbon emissions (g)', ylabel=r'$year$', zlabel='Number of trips')
+        
+        plt.show()
+        
         return None
+        
+        
         
     
     
@@ -374,7 +467,9 @@ if __name__ == "__main__":
     
     popt_levy, _ = levy_fitting.LevyFitting(weight, non_zero, emission)
     popt_norm = levy_fitting.Weight(weight, non_zero, popt_levy, 0.002, (4000, 0, 0, 0, 0))
-    y_norm = levy_fitting.ChiSquare(popt_levy, popt_norm)
     
     dict_purp = levy_fitting.TravelPurpose()
-    levy_fitting.PurposeAnalysis(dict_purp)
+    sum_y = levy_fitting.PurposeAnalysis(dict_purp)
+    
+    levy_fitting.LocationResults()
+

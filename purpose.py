@@ -40,7 +40,7 @@ class LevyFitting(object):
         
         # Database location
         conn_str = (r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};'
-                    r'DBQ=data\Travel Survey\2019.accdb;')
+                    r'DBQ=data\Travel Survey\2020.accdb;')
         
         conn = pyodbc.connect(conn_str)
                     
@@ -110,11 +110,11 @@ class LevyFitting(object):
                 
         for i in range(len(mode_id)):
             if mode_id[i] == 0 or mode_id[i] == 2:
-                carbon_emi.append(cum_dist[i] * self.car_2019)
-                car_list.append(cum_dist[i] * self.car_2019)
+                carbon_emi.append(cum_dist[i] * self.car_2020)
+                car_list.append(cum_dist[i] * self.car_2020)
             elif mode_id[i] == 3:
-                carbon_emi.append(cum_dist[i] * self.bus_2019)
-                bus_list.append(cum_dist[i] * self.bus_2019)
+                carbon_emi.append(cum_dist[i] * self.bus_2020)
+                bus_list.append(cum_dist[i] * self.bus_2020)
             else:
                 carbon_emi.append(0)
                 zero_cnt += 1
@@ -594,6 +594,60 @@ class LevyFitting(object):
         return None
         
     
+    def PurposeModeShare(self):
+        
+        # 0, 1015, 1255, 1535, 1750
+        mode_id = self.mode_id
+        purpose = np.array(self.df_5)[:, 25]
+        mode_shr = np.zeros((3, 4))
+        
+        for i in range(len(mode_id)):
+            if purpose[i] == 'Direct Work Commute':
+                mode_shr[0][mode_id[i]] += 1
+            elif purpose[i] == 'Shopping':
+                mode_shr[1][mode_id[i]] += 1
+            elif purpose[i] == 'Recreation':
+                mode_shr[2][mode_id[i]] += 1
+                
+        sum_shr = np.sum(mode_shr, axis=1)
+        mode_shr /= sum_shr.reshape((3, 1))
+                
+        return mode_shr
+    
+    
+    def Plot(self):
+        
+        size = 3
+        total_w, n = 0.8, 4
+        
+        # mode_shr = [[ 0.6577, 	 0.3110, 	 0.0313 ],
+        #             [ 0.6546, 	 0.3215, 	 0.0238 ],
+        #             [ 0.6476, 	 0.3355, 	 0.0169 ],
+        #             [ 0.5594, 	 0.4277, 	 0.0130 ]]
+        # mode_shr = [[  0.8886, 	 0.0804, 	 0.0310 ],
+        #             [  0.9057, 	 0.0704, 	 0.0239 ],
+        #             [  0.8905, 	 0.0835, 	 0.0260 ],
+        #             [  0.9043, 	 0.0786, 	 0.0171 ]]
+        mode_shr = [[ 0.8750, 	 0.0235, 	 0.1015 ],
+                    [ 0.8709, 	 0.0278, 	 0.1013 ],
+                    [ 0.8746, 	 0.0295, 	 0.0959 ],
+                    [ 0.9078, 	 0.0362, 	 0.0561 ]]
+        
+        x = np.arange(size)
+        width = total_w / n
+        tick_label = ['Private vehicle', 'Active transport', 'Public transport']
+        
+        plt.bar(x + 0 * width, mode_shr[0], width=width, color=(1, 0, 0), label='2017-2018')
+        plt.bar(x + 1 * width, mode_shr[1], width=width, color=(.85, 0, 0), label='2018-2019')
+        plt.bar(x + 2 * width, mode_shr[2], width=width, color=(.70, 0, 0), label='2019-2020')
+        plt.bar(x + 3 * width, mode_shr[3], width=width, color=(.55, 0, 0), label='2020-2021')
+        plt.legend()
+        plt.xticks(x+total_w/2,tick_label)
+        plt.xlabel('Travel mode', self.font)
+        plt.ylabel('Mode share', self.font)
+        plt.show()
+        
+        return None
     
     
 if __name__ == "__main__":
@@ -610,4 +664,6 @@ if __name__ == "__main__":
     levy_fitting.CommuteResults()
     levy_fitting.ShoppingResults()
     levy_fitting.RecreationResults()
-
+    
+    mode_shr = levy_fitting.PurposeModeShare()
+    levy_fitting.Plot()

@@ -40,7 +40,7 @@ class LevyFitting(object):
         
         # Database location
         conn_str = (r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};'
-                    r'DBQ=data\Travel Survey\2020.accdb;')
+                    r'DBQ=data\Travel Survey\2018-21_pooled_seq_qts_erv1.0.accdb;')
         
         conn = pyodbc.connect(conn_str)
                     
@@ -110,11 +110,11 @@ class LevyFitting(object):
                 
         for i in range(len(mode_id)):
             if mode_id[i] == 0 or mode_id[i] == 2:
-                carbon_emi.append(cum_dist[i] * self.car_2020)
-                car_list.append(cum_dist[i] * self.car_2020)
+                carbon_emi.append(cum_dist[i] * self.car_ave)
+                car_list.append(cum_dist[i] * self.car_ave)
             elif mode_id[i] == 3:
-                carbon_emi.append(cum_dist[i] * self.bus_2020)
-                bus_list.append(cum_dist[i] * self.bus_2020)
+                carbon_emi.append(cum_dist[i] * self.bus_ave)
+                bus_list.append(cum_dist[i] * self.bus_ave)
             else:
                 carbon_emi.append(0)
                 zero_cnt += 1
@@ -599,23 +599,31 @@ class LevyFitting(object):
         # 0, 1015, 1255, 1535, 1750
         mode_id = self.mode_id
         purpose = np.array(self.df_5)[:, 25]
-        mode_shr = np.zeros((3, 4))
+        mode_shr = np.zeros((7, 4))
         
         for i in range(len(mode_id)):
             if purpose[i] == 'Direct Work Commute':
                 mode_shr[0][mode_id[i]] += 1
             elif purpose[i] == 'Shopping':
                 mode_shr[1][mode_id[i]] += 1
-            elif purpose[i] == 'Recreation':
+            elif purpose[i] == 'Pickup/Dropoff Someone':
                 mode_shr[2][mode_id[i]] += 1
+            elif purpose[i] == 'Recreation':
+                mode_shr[3][mode_id[i]] += 1
+            elif purpose[i] == 'Education':
+                mode_shr[4][mode_id[i]] += 1
+            elif purpose[i] == 'Personal Business':
+                mode_shr[5][mode_id[i]] += 1
+            elif purpose[i] == 'Work Related':
+                mode_shr[6][mode_id[i]] += 1
                 
         sum_shr = np.sum(mode_shr, axis=1)
-        mode_shr /= sum_shr.reshape((3, 1))
+        mode_shr /= sum_shr.reshape((7, 1))
                 
         return mode_shr
     
     
-    def Plot(self):
+    def PlotYear(self):
         
         size = 3
         total_w, n = 0.8, 4
@@ -650,6 +658,41 @@ class LevyFitting(object):
         return None
     
     
+    def PlotPurpose(self):
+        
+        size = 3
+        total_w, n = 0.8, 7
+        
+        mode_shr = [[0.88295688, 2.99494165e-02, 8.70937046e-02],
+                    [0.89716560, 7.97612005e-02, 2.30731996e-02],
+                    [0.95497257, 3.83426878e-02, 6.68474491e-03],
+                    [0.61944913, 3.62402634e-01, 1.81482374e-02],
+                    [0.68024457, 1.55528763e-01, 1.64226662e-01],
+                    [0.91861731, 4.25966249e-02, 3.87860642e-02],
+                    [0.89966555, 6.00246435e-02, 4.03098046e-02]]
+        
+        x = np.arange(size)
+        width = total_w / n
+        tick_label = ['Private vehicle', 'Active transport', 'Public transport']
+        
+        plt.bar(x + 0 * width, mode_shr[0], width=width, color='red', label='Commute')
+        plt.bar(x + 1 * width, mode_shr[1], width=width, color='blue', label='Shopping')
+        plt.bar(x + 2 * width, mode_shr[2], width=width, color='green', label='Pickup')
+        plt.bar(x + 3 * width, mode_shr[3], width=width, color='yellow', label='Recreation')
+        plt.bar(x + 4 * width, mode_shr[4], width=width, color='black', label='Education')
+        plt.bar(x + 5 * width, mode_shr[5], width=width, color='orange', label='Personal business')
+        plt.bar(x + 6 * width, mode_shr[6], width=width, color='purple', label='Work related')
+        plt.legend()
+        plt.xticks(x+total_w/2,tick_label)
+        plt.xlabel('Travel mode', self.font)
+        plt.ylabel('Mode share', self.font)
+        plt.show()
+        
+        return None
+    
+    
+    
+    
 if __name__ == "__main__":
     
     levy_fitting = LevyFitting()
@@ -666,4 +709,5 @@ if __name__ == "__main__":
     levy_fitting.RecreationResults()
     
     mode_shr = levy_fitting.PurposeModeShare()
-    levy_fitting.Plot()
+    levy_fitting.PlotYear()
+    levy_fitting.PlotPurpose()

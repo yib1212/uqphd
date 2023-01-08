@@ -6,11 +6,12 @@ Created on Thu Jan  5 13:24:05 2023
 """
 
 import pyodbc
-import dbfread
-import collections
 import pandas as pd
 import numpy as np
 import objective_1
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+from scipy.stats import levy
 
 
 class LevyRegression(object):
@@ -71,16 +72,57 @@ class LevyRegression(object):
         # 66 SA2 0, 316-66=250
         return emi_ave, num_cnt
     
+    
+    def Levy(self, x, sigma, mu, a, c):
+        
+        # levy_fit = np.sqrt(sigma/(2*math.pi)) * (np.exp(-(sigma/2*(x-mu)))) / (np.power((x-mu),2))
+        levy_fit = levy.pdf(x, mu, sigma)
+        
+        return a * levy_fit
+    
             
     def LevyFitting(self, num_cnt):
         
         mode_id = self.mode_id
         sa2_main = self.sa2_main
         sa2_array = self.sa2_array
+        carbon_emi = self.carbon_emi
+        
+        min_bound = 0
+        max_bound = 10000
+        d = 10
+        num_bins = (max_bound - min_bound) // d
+        plt.axis([0, max_bound, 0, 180])
         
         for i in range(len(num_cnt)):
+            emissions = []
             if num_cnt[i] != 0:
-                for j in range
+                for j in range(len(sa2_array)):
+                    if sa2_array[j] == sa2_main[i] and carbon_emi[j] != 0:
+                        emissions.append(carbon_emi[j])
+            if emissions != []:
+                n, bin_edges, _ = plt.hist(emissions, num_bins)
+                plt.show()
+                n[-1] = 0
+                bin_middles = 0.5 * (bin_edges[1:] + bin_edges[:-1])
+                weight = np.array(n) / sum(n)
+                popt, pcov = curve_fit(self.Levy, bin_middles, weight, p0=(600, 300, 15, 0))
+                
+                y_train_pred = self.Levy(bin_middles, *popt)
+        
+                plt.axis([0, 10000, 0, 0.01])
+                plt.scatter(bin_middles, weight, s=5, c='blue', label='train')
+                plt.scatter(bin_middles, y_train_pred, s=5, c='red', label='model')
+                plt.grid()
+                plt.legend()
+                plt.xlabel('Carbon emissions (g)', self.font)
+                plt.ylabel('Probability density', self.font)
+                plt.show()
+                
+                print(popt)
+                
+        return None
+    
     
     
 if __name__ == "__main__":
@@ -88,3 +130,4 @@ if __name__ == "__main__":
     reg = LevyRegression()
     
     emi_ave, num_cnt = reg.TripEmission()
+    reg.LevyFitting(num_cnt)

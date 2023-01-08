@@ -140,7 +140,7 @@ class LevyFitting(object):
         self.num_bins = num_bins
         
         plt.axis([0, max_bound, 0, 900])
-        self.n, bin_edges, _ = plt.hist(hist_emi, num_bins)
+        self.n, bin_edges, _ = plt.hist(hist_emi, num_bins, color=(0, 0, 1))
         self.n[0] = 0
         self.n[-1] = 0
         self.bin_middles = 0.5 * (bin_edges[1:] + bin_edges[:-1])
@@ -282,11 +282,18 @@ class LevyFitting(object):
                 
         ''' Plot the Levy and Skew-levy curve '''
         x = range(10000)
+        # x = self.bin_middles
         y_levy = np.array(self.Levy(x, *popt_levy))
         y_norm = np.array(self.Norm(x, *popt_norm))
         y = y_levy * y_norm
         y_levy = y_levy / np.sum(y_levy) * non_zero * 10
         y = y / np.sum(y) * np.sum(y_levy)
+        
+        # mean = self.Mean(y)
+        # median = self.Median(y)
+        # var = self.Variance(y, mean)
+        # std = np.sqrt(var)
+        # print(mean, std)
                 
         plt.axis([0, 10000, 0, 900])
         plt.hist(hist_emi, self.num_bins, color='blue')
@@ -301,7 +308,8 @@ class LevyFitting(object):
         A = np.array(self.n)
         E_levy = np.array(self.Levy(bin_middles, *popt_levy))
         E_norm = np.array(self.Norm(bin_middles, *popt_norm))
-        # E = E_levy * E_norm
+        N = E_levy * E_norm
+        N = N / np.sum(N) * non_zero
         E = E_levy
         E = E / np.sum(E) * non_zero
         Y = np.dot(-0.000235, bin_middles) + 2.6
@@ -314,12 +322,14 @@ class LevyFitting(object):
             
         A = np.log10(A)
         E = np.log10(E)
+        N = np.log10(N)
         bin_middles = np.log10(bin_middles)
         
         plt.axis([2, 4, 0, 3.5])
         plt.plot(bin_middles, A, 'k', linewidth=2, c='red', label='Obsevation')
         plt.plot(bin_middles, E, '--', linewidth=2, c='blue', label='Levy')
-        plt.plot(bin_middles, Y, ':', linewidth=2, c='green', label='Exponetial')
+        # plt.plot(bin_middles, Y, ':', linewidth=2, c='green', label='Exponetial')
+        plt.plot(bin_middles, N, ':', linewidth=2, c='black', label='Normal-Levy')
         plt.legend()
         plt.xlabel('Carbon emissions (10^ g)', self.font)
         plt.ylabel('Number of trips (10^)', self.font)
@@ -327,133 +337,50 @@ class LevyFitting(object):
         
         print('Chi-Square:', X_2)
         
-        return A, E, div
+        return A, E, div, y
     
     
-    def TravelPurpose(self):
+    def Mean(self, y):
         
-        carbon_emi = self.hist_emi
-                        
-        purpose = np.array(self.df_5)[:, 25]
+        x = self.bin_middles
+        sum_x = np.sum(x * y)
+        mean_x = sum_x / np.sum(y)
         
-        commute = []
-        shopping = []
-        pickup = []
-        recreation = []
-        education = []
-        business = []
-        accompany = []
-        work = []
-        social = []
-        deliver = []
-        other = []
-        
-        for index, value in enumerate(purpose):
-            if value == 'Direct Work Commute':
-                commute.append(carbon_emi[index])
-            elif value == 'Shopping':
-                shopping.append(carbon_emi[index])
-            elif value == 'Pickup/Dropoff Someone':
-                pickup.append(carbon_emi[index])
-            elif value == 'Recreation':
-                recreation.append(carbon_emi[index])
-            elif value == 'Education':
-                education.append(carbon_emi[index])
-            elif value == 'Personal Business':
-                business.append(carbon_emi[index])
-            elif value == 'Accompany Someone':
-                accompany.append(carbon_emi[index])
-            elif value == 'Work Related':
-                work.append(carbon_emi[index])
-            elif value == 'Social':
-                social.append(carbon_emi[index])
-            elif value == 'Pickup/Deliver Something':
-                deliver.append(carbon_emi[index])
-            else:
-                other.append(carbon_emi[index])
-        
-        dict_purp = {'commute':    commute,
-                     'shopping':   shopping,
-                     'pickup':     pickup,
-                     'recreation': recreation,
-                     'education':  education, 
-                     'business':   business,
-                     'work':       work
-                     }
-        
-        return dict_purp
+        return mean_x
     
     
-    def PurposeAnalysis(self, dict_purp):
+    def Median(self, y):
         
-        num_bins = self.num_bins
-        dist_estm = {}
-        dist_nlevy = {}
+        x = self.bin_middles
+        sum_y_med = np.sum(y) / 2
+        median_x = 0
+        sum_y = 0
+        for i in range(len(x)):
+            if sum_y < sum_y_med:
+                sum_y += y[i]
+                median_x = x[i]
         
-        w_max = {'commute':    0.002,
-                 'shopping':   0.0014,
-                 'pickup':     0.002,
-                 'recreation': 0.0003,
-                 'education':  0.002, 
-                 'business':   0.0017,
-                 'work':       0.0011
-                 }
+        return median_x
         
-        x = range(10000)
-                
-        for key in dict_purp:
-            print(key)
+    def Variance(self, y, mean):
         
-            plt.axis([0, 10000, 0, 250])
-            n, _, _ = plt.hist(dict_purp[key], num_bins)
-            plt.show()
+        x = self.bin_middles
+        sum_y = np.sum(y)
+        sum_sqr = 0
+        for i in range(len(x)):
+            sum_sqr += y[i] * (x[i] - mean) ** 2
+        var = sum_sqr / sum_y
         
-            non_zero = len(dict_purp[key]) - n[0] - n[-1]
-            n[0] = 0
-            n[-1] = 0
-            
-            popt_levy, dist_estm[key] = self.LevyFitting(n, non_zero, dict_purp[key])
-            popt_norm = self.Weight(n, non_zero, popt_levy, w_max[key])
-            
-            ''' Plot the Levy and Skew-levy curve '''
-            
-            y_levy = np.array(self.Levy(x, *popt_levy))
-            y_norm = np.array(self.Norm(x, *popt_norm))
-            y = y_levy * y_norm
-            y_levy = y_levy / np.sum(y_levy) * non_zero * 10
-            y = y / np.sum(y) * np.sum(y_levy)
-            dist_nlevy[key] = y
-        
-        plt.axis([0, 10000, 0, 175])
-        plt.plot(x, dist_estm['commute'], 'k', linewidth=2, c='red', label='Commute')
-        plt.plot(x, dist_estm['shopping'], 'k', linewidth=2, c='blue', label='Shopping')
-        plt.plot(x, dist_estm['pickup'], 'k', linewidth=2, c='green', label='Pickup')
-        plt.plot(x, dist_estm['recreation'], 'k', linewidth=2, c='yellow', label='Recreation')
-        plt.plot(x, dist_estm['education'], 'k', linewidth=2, c='black', label='Education')
-        plt.plot(x, dist_estm['business'], 'k', linewidth=2, c='orange', label='Personal business')
-        plt.plot(x, dist_estm['work'], 'k', linewidth=2, c='purple', label='Work related')
-        plt.legend()
-        plt.xlabel('Carbon emissions (g)', self.font)
-        plt.ylabel('Number of trips', self.font)
-        plt.show()
-        
-        plt.axis([0, 10000, 0, 240])
-        plt.plot(x, dist_nlevy['commute'], 'k', linewidth=2, c='red', label='Commute')
-        plt.plot(x, dist_nlevy['shopping'], 'k', linewidth=2, c='blue', label='Shopping')
-        plt.plot(x, dist_nlevy['pickup'], 'k', linewidth=2, c='green', label='Pickup')
-        plt.plot(x, dist_nlevy['recreation'], 'k', linewidth=2, c='yellow', label='Recreation')
-        plt.plot(x, dist_nlevy['education'], 'k', linewidth=2, c='black', label='Education')
-        plt.plot(x, dist_nlevy['business'], 'k', linewidth=2, c='orange', label='Personal business')
-        plt.plot(x, dist_nlevy['work'], 'k', linewidth=2, c='purple', label='Work related')
-        plt.legend()
-        plt.xlabel('Carbon emissions (g)', self.font)
-        plt.ylabel('Number of trips', self.font)
-        plt.show()
-        
-        return None
-        
+        return var
     
-    
+    # Pearson’s mode/median skewness
+    def Skew(self, mean, med, std, mode):
+        
+        skew1 = (mean - med) / std
+        skew2 = 3 * (mean - med) / std
+        
+        return skew1, skew2
+  
     
 if __name__ == "__main__":
     
@@ -462,7 +389,7 @@ if __name__ == "__main__":
     
     popt_levy, _ = levy_fitting.LevyFitting(weight, non_zero, emission)
     popt_norm = levy_fitting.Weight(weight, non_zero, popt_levy, 0.002)
-    A, E, div = levy_fitting.ChiSquare(popt_levy, popt_norm)
+    A, E, div, y_ = levy_fitting.ChiSquare(popt_levy, popt_norm)
     y, n = levy_fitting.KSTest(popt_levy, popt_norm)
     # print(chi2.ppf(0.05, 600))
     
@@ -471,6 +398,3 @@ if __name__ == "__main__":
     #     popt_levy = levy_fitting.LevyFitting(weight, non_zero, emission)
     #     popt_norm = levy_fitting.Weight(popt_levy)
     #     y_norm = levy_fitting.ChiSquare(popt_levy, popt_norm)
-    
-    # dict_purp = levy_fitting.TravelPurpose()
-    # levy_fitting.PurposeAnalysis(dict_purp)

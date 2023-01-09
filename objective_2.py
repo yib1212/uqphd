@@ -26,7 +26,7 @@ class LevyRegression(object):
         
         # Database location
         conn_str = (r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};'
-                    r'DBQ=data\Travel Survey\2020.accdb;')
+                    r'DBQ=data\Travel Survey\2018-21_pooled_seq_qts_erv1.0.accdb;')
         
         conn = pyodbc.connect(conn_str)
                     
@@ -80,9 +80,9 @@ class LevyRegression(object):
         
         for i in range(len(mode_id)):
             if mode_id[i] == 0 or mode_id[i] == 2:
-                carbon_emi.append(cum_dist[i] * self.car_2020)
+                carbon_emi.append(cum_dist[i] * self.car_ave)
             elif mode_id[i] == 3:
-                carbon_emi.append(cum_dist[i] * self.bus_2020)
+                carbon_emi.append(cum_dist[i] * self.bus_ave)
             else:
                 carbon_emi.append(0)
                 
@@ -112,8 +112,8 @@ class LevyRegression(object):
     def LevyFitting(self, num_cnt):
         
         mode_id = self.mode_id
-        sa2_main = self.sa2_main
-        sa2_array = self.sa2_array
+        sa3_main = self.sa3_main
+        sa3_array = self.sa3_array
         carbon_emi = self.carbon_emi
         
         min_bound = 0
@@ -123,10 +123,11 @@ class LevyRegression(object):
         plt.axis([0, max_bound, 0, 180])
         
         for i in range(len(num_cnt)):
+        # for i in range(10):
             emissions = []
             if num_cnt[i] != 0:
-                for j in range(len(sa2_array)):
-                    if sa2_array[j] == sa2_main[i] and carbon_emi[j] != 0:
+                for j in range(len(sa3_array)):
+                    if sa3_array[j] == sa3_main[i] and carbon_emi[j] != 0:
                         emissions.append(carbon_emi[j])
             if emissions != []:
                 n, bin_edges, _ = plt.hist(emissions, num_bins)
@@ -138,7 +139,7 @@ class LevyRegression(object):
                 
                 y_train_pred = self.Levy(bin_middles, *popt)
         
-                plt.axis([0, 10000, 0, 0.01])
+                plt.axis([0, 10000, 0, 0.08])
                 plt.scatter(bin_middles, weight, s=5, c='blue', label='train')
                 plt.scatter(bin_middles, y_train_pred, s=5, c='red', label='model')
                 plt.grid()
@@ -159,4 +160,4 @@ if __name__ == "__main__":
     
     sa3_main, sa3_array = reg.SA3Info()
     emi_ave, num_cnt = reg.TripEmission()
-    # reg.LevyFitting(num_cnt)
+    reg.LevyFitting(num_cnt)

@@ -6,6 +6,7 @@ Created on Thu Jan  5 13:24:05 2023
 """
 
 import pyodbc
+import collections
 import pandas as pd
 import numpy as np
 import objective_1
@@ -20,6 +21,8 @@ class LevyRegression(object):
         
         self.car_2020 = 150.78
         self.bus_2020 = 121.97
+        self.car_ave = 152.3
+        self.bus_ave = 100.2
         
         # Database location
         conn_str = (r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};'
@@ -40,13 +43,38 @@ class LevyRegression(object):
         return None
     
     
+    def SA3Info(self):
+        
+        ''' Get SA3 information from the database file. '''
+        
+        sa3_id = np.floor(np.array(self.df_1)[:, 13] / 1e6)
+        hhid_1 = np.array(self.df_1)[:, 0].astype(int)
+        hhid_5 = np.array(self.df_5)[:, 1].astype(int)
+        
+        sa3_array = []
+        for hhid in hhid_5:
+            index = np.argwhere(hhid_1 == hhid)
+            sa3_array.append(sa3_id[index[0, 0]])
+        
+        sa3_main = []
+        sa3_cnt = collections.Counter(sa3_id)
+        for key in sa3_cnt:
+            sa3_main.append(key)
+        print(sa3_cnt)
+        
+        self.sa3_main = np.array(sa3_main).astype(int)
+        self.sa3_array = sa3_array
+        
+        return sa3_main, sa3_array
+    
+    
     def TripEmission(self):
         
         ''' Compute the carbon emission for each trip. '''
         
         mode_id = self.mode_id
-        sa2_main = self.sa2_main
-        sa2_array = self.sa2_array
+        sa3_main = self.sa3_main
+        sa3_array = self.sa3_array
         cum_dist = np.array(self.df_5)[:, 24]
         carbon_emi = []
         
@@ -58,11 +86,11 @@ class LevyRegression(object):
             else:
                 carbon_emi.append(0)
                 
-        emi_sum = np.zeros(len(sa2_main))
-        num_cnt = np.zeros(len(sa2_main), dtype = int)
+        emi_sum = np.zeros(len(sa3_main))
+        num_cnt = np.zeros(len(sa3_main), dtype = int)
         
-        for i in range(len(sa2_array)):
-            idx = np.argwhere(sa2_main == sa2_array[i])
+        for i in range(len(sa3_array)):
+            idx = np.argwhere(sa3_main == sa3_array[i])
             emi_sum[idx] += carbon_emi[i]
             num_cnt[idx] += 1
         
@@ -129,5 +157,6 @@ if __name__ == "__main__":
     
     reg = LevyRegression()
     
+    sa3_main, sa3_array = reg.SA3Info()
     emi_ave, num_cnt = reg.TripEmission()
-    reg.LevyFitting(num_cnt)
+    # reg.LevyFitting(num_cnt)

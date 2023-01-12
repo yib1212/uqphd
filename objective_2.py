@@ -125,7 +125,7 @@ class LevyRegression(object):
         for i in range(len(num_cnt)):
         # for i in range(10):
             emissions = []
-            if num_cnt[i] != 0:
+            if num_cnt[i] > 200: # The SA3 area with more than 200 samples
                 for j in range(len(sa3_array)):
                     if sa3_array[j] == sa3_main[i] and carbon_emi[j] != 0:
                         emissions.append(carbon_emi[j])

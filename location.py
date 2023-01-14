@@ -240,6 +240,8 @@ class CarbonEachTrip(object):
             elif emi_ave[i] < 1015:
                 id_1.append(sa2_main[i])
                 t1.append(time_ave[i])
+                # if time_ave[i] == 12.225563909774436: # 12.225563909774436, 29.666666666666668
+                #     print(sa2_main[i])
                 e1.append(emi_ave[i])
             elif emi_ave[i] < 1255:
                 id_2.append(sa2_main[i])
@@ -276,6 +278,11 @@ class CarbonEachTrip(object):
             elif sa2_array[j] in id_5:
                 data_5.append(carbon_emi[j])
                 
+        # print(max(t1))    
+        # for i in range(len(t1)):
+        #     if t1[i] == 29.666666666666668:
+        #         print(i)
+        
         plt.axis([0, 40, 0, 5000])
         # plt.title('Average carbon emission and travel time of different SA2 regions', self.font)
         plt.xlabel('Average travel time (min)', self.font)
@@ -287,6 +294,8 @@ class CarbonEachTrip(object):
         plt.scatter(t5, e5, marker='.', s=10, color=(1.00, 0.00, 0.00), label='Over 1750g')
         plt.legend()
         plt.show()
+        
+        print(id_1, id_2, id_3, id_4, id_5)
         
         return id_0, data_1, data_2, data_3, data_4, data_5
     

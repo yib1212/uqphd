@@ -202,7 +202,7 @@ class LevyFitting(object):
         
         
         ''' Gaussian filter '''
-        for i in range(20):
+        for i in range(30):
             weight = gaussian_filter(weight, sigma=1)
         
         ''' Fit and predict '''
@@ -286,41 +286,41 @@ class LevyFitting(object):
         non_zero = {}
         levy_res = {}
         
-        # w_max = {'commute':    0.002,
-        #           'shopping':   0.0014,
-        #           'pickup':     0.0015,
-        #           'recreation': 0.0003,
-        #           'education':  0.002, 
-        #           'business':   0.0017,
-        #           'work':       0.0011
-        #           }
-        
-        w_max = {'commute':    0.0020,
+        w_max = {'commute':    0.002,
                   'shopping':   0.0014,
-                  'pickup':     0.00012,
-                  'recreation': 0.0010,
-                  'education':  0.0007, 
-                  'business':   0.0011,
+                  'pickup':     0.0015,
+                  'recreation': 0.0003,
+                  'education':  0.002, 
+                  'business':   0.0017,
                   'work':       0.0011
                   }
-
-        # p0 = {'commute':    (2726, 2738, 0, 0, 8),
-        #       'shopping':   (3683, -2790, 0, 0, 10),
-        #       'pickup':     (3200, -500, 0, 0, 5),
-        #       'recreation': (3042, -320, 0, 0, 9e-5),
-        #       'education':  (2000, 500, 0, 0, 5), 
-        #       'business':   (4000, -1000, 0, 0, 15),
-        #       'work':       (3042, 1400, 0, 0, 6)
-        #       }
         
+        # w_max = {'commute':    0.0020,
+        #           'shopping':   0.0014,
+        #           'pickup':     0.00012,
+        #           'recreation': 0.0010,
+        #           'education':  0.0007, 
+        #           'business':   0.0011,
+        #           'work':       0.0011
+        #           }
+
         p0 = {'commute':    (2726, 2738, 0, 0, 8),
               'shopping':   (3683, -2790, 0, 0, 10),
               'pickup':     (3200, -500, 0, 0, 5),
-              'recreation': (2797, 243, 0, 0, 9e-5),
+              'recreation': (3000, 600, 0, 0, 0),
               'education':  (2000, 500, 0, 0, 5), 
               'business':   (4000, -1000, 0, 0, 15),
               'work':       (3042, 1400, 0, 0, 6)
               }
+        
+        # p0 = {'commute':    (2726, 2738, 0, 0, 8),
+        #       'shopping':   (3683, -2790, 0, 0, 10),
+        #       'pickup':     (3200, -500, 0, 0, 5),
+        #       'recreation': (2797, 243, 0, 0, 9e-5),
+        #       'education':  (2000, 500, 0, 0, 5), 
+        #       'business':   (4000, -1000, 0, 0, 15),
+        #       'work':       (3042, 1400, 0, 0, 6)
+        #       }
                 
         for key in dict_purp:
             print(key)
@@ -368,27 +368,35 @@ class LevyFitting(object):
         # for key in dict_purp:
         #     dist_estm[key] = np.log10(dist_estm[key])
                     
-        plt.axis([2, 4, 0, 2.4])
-        plt.plot(x, dist_estm['commute'], 'k', linewidth=1, c='red', label='Commute')
-        plt.plot(x, dist_estm['shopping'], 'k', linewidth=1, c='blue', label='Shopping')
-        plt.plot(x, dist_estm['pickup'], 'k', linewidth=1, c='green', label='Pickup')
-        plt.plot(x, dist_estm['recreation'], 'k', linewidth=1, c='yellow', label='Recreation')
-        plt.plot(x, dist_estm['education'], 'k', linewidth=1, c='black', label='Education')
-        plt.plot(x, dist_estm['business'], 'k', linewidth=1, c='orange', label='Personal business')
-        plt.plot(x, dist_estm['work'], 'k', linewidth=1, c='purple', label='Work related')
-        plt.plot(x, levy_res['commute'], '--', linewidth=1, c='red')
-        plt.plot(x, levy_res['shopping'], '--', linewidth=1, c='blue')
-        plt.plot(x, levy_res['pickup'], '--', linewidth=1, c='green')
-        plt.plot(x, levy_res['recreation'], '--', linewidth=1, c='yellow')
-        plt.plot(x, levy_res['education'], '--', linewidth=1, c='black')
-        plt.plot(x, levy_res['business'], '--', linewidth=1, c='orange')
-        plt.plot(x, levy_res['work'], '--', linewidth=1, c='purple')
-        plt.legend()
-        plt.xlabel('Carbon emissions (10^g)', self.font)
-        plt.ylabel('Number of trips (10^)', self.font)
-        plt.show()
+        # plt.axis([2, 4, 0, 2.4])
+        # plt.plot(x, dist_estm['commute'], 'k', linewidth=1, c='red', label='Commute')
+        # plt.plot(x, dist_estm['shopping'], 'k', linewidth=1, c='blue', label='Shopping')
+        # plt.plot(x, dist_estm['pickup'], 'k', linewidth=1, c='green', label='Pickup')
+        # plt.plot(x, dist_estm['recreation'], 'k', linewidth=1, c='yellow', label='Recreation')
+        # plt.plot(x, dist_estm['education'], 'k', linewidth=1, c='black', label='Education')
+        # plt.plot(x, dist_estm['business'], 'k', linewidth=1, c='orange', label='Personal business')
+        # plt.plot(x, dist_estm['work'], 'k', linewidth=1, c='purple', label='Work related')
+        # plt.plot(x, levy_res['commute'], '--', linewidth=1, c='red')
+        # plt.plot(x, levy_res['shopping'], '--', linewidth=1, c='blue')
+        # plt.plot(x, levy_res['pickup'], '--', linewidth=1, c='green')
+        # plt.plot(x, levy_res['recreation'], '--', linewidth=1, c='yellow')
+        # plt.plot(x, levy_res['education'], '--', linewidth=1, c='black')
+        # plt.plot(x, levy_res['business'], '--', linewidth=1, c='orange')
+        # plt.plot(x, levy_res['work'], '--', linewidth=1, c='purple')
+        # plt.legend()
+        # plt.xlabel('Carbon emissions (10^g)', self.font)
+        # plt.ylabel('Number of trips (10^)', self.font)
+        # plt.show()
         
-        return np.sum(dist_estm['recreation'])
+        
+        # dist_list = []
+        # for xi in range(len(x)):
+        #     dist_list.append(abs(dist_estm['recreation'][xi] - levy_res['recreation'][xi]))
+        # print(dist_list.index(min(dist_list)))
+        
+        return dist_estm['shopping']
+        # return np.sum(dist_estm['recreation'])
+        # return dist_list
     
     
     def polygon_under_graph(self, x, y):
@@ -691,6 +699,22 @@ class LevyFitting(object):
         return None
     
     
+    def Regression(self):
+        
+        boundary = np.array([4812, 1469, 1987, 2168, 1994, 2621, 3807])
+        # boundary = np.log10(boundary)
+        scale = np.array([2.72665898e+03, 3.68322255e+03, 2.96285061e+03, 3.08149845e+03, 2.35188894e+03, 4.16326543e+03, 3.33583548e+03])
+        mean = np.array([2.73767567e+03, -2.79484042e+03, 5.46407017e+00, -6.46095672e+01, 3.20615570e+02, 2.28172944e+02, 1.71447957e+03])
+        
+        plt.axis([2, 5000, 2000, 4500])
+        # plt.title('Average carbon emission and travel time of different SA2 regions', self.font)
+        plt.xlabel('Average travel time (min)', self.font)
+        plt.ylabel('Average carbon emission (g)', self.font)
+        plt.scatter(boundary, scale, marker='.', s=10, color=(0.00, 0.00, 1.00), label='0-1014 g')
+        plt.legend()
+        plt.show()
+    
+        return None
     
     
 if __name__ == "__main__":
@@ -701,8 +725,8 @@ if __name__ == "__main__":
     popt_levy, _ = levy_fitting.LevyFitting(weight, non_zero, emission)
     popt_norm = levy_fitting.Weight(weight, non_zero, popt_levy, 0.002, (4000, 0, 0, 0, 0))
     
-    # dict_purp = levy_fitting.TravelPurpose()
-    # sum_y = levy_fitting.PurposeAnalysis(dict_purp)
+    dict_purp = levy_fitting.TravelPurpose()
+    sum_y = levy_fitting.PurposeAnalysis(dict_purp)
     
     levy_fitting.CommuteResults()
     levy_fitting.ShoppingResults()
@@ -711,3 +735,5 @@ if __name__ == "__main__":
     mode_shr = levy_fitting.PurposeModeShare()
     levy_fitting.PlotYear()
     levy_fitting.PlotPurpose()
+    
+    levy_fitting.Regression()

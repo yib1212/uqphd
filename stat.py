@@ -297,6 +297,12 @@ class CarbonEachTrip(object):
                 time[4][1] += 1
                 time[4][2] += (trav_time[j] - ave_time[4]) ** 2
                 
+        mode_305031128 = np.zeros((1, 3))
+        for k in range(len(sa2_array)):
+            if sa2_array[k] == 305011109:
+                mode_305031128[0][mode_id[k]] += 1
+        print("305031128:", mode_305031128)
+                
         sum_shr = np.sum(mode_shr, axis=1)
         mode_shr /= sum_shr.reshape((5, 1))
         print(np.divide(time[:, 0], time[:, 1]))

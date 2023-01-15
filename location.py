@@ -235,13 +235,14 @@ class CarbonEachTrip(object):
         sa2_array = self.sa2_array
         
         for i in range(len(emi_ave)):
-            if emi_ave[i] == 0:
+            if emi_ave[i] < 1:
                 id_0.append(sa2_main[i])
             elif emi_ave[i] < 1015:
                 id_1.append(sa2_main[i])
                 t1.append(time_ave[i])
                 # if time_ave[i] == 12.225563909774436: # 12.225563909774436, 29.666666666666668
-                #     print(sa2_main[i])
+                if time_ave[i] ==24.046204620462046: # 24.146853146853147
+                    print(sa2_main[i])
                 e1.append(emi_ave[i])
             elif emi_ave[i] < 1255:
                 id_2.append(sa2_main[i])

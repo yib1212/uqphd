@@ -168,23 +168,26 @@ class CarbonEmission(object):
     
     def EM_algorithm(self, n, carbon_emi):
         
-        loc_EM = np.array([0., 0., 0., 0.])
-        sigma_EM = np.array([880., 865., 850., 840.])
-        tao = np.array([0.10, 0.20, 0.30, 0.40])
-        prob_xi = np.array([0., 0., 0., 0.])
+        SA = 11
+        # loc_EM = np.zeros(SA)
+        # sigma_EM = np.array([880., 865., 850., 840.])
+        # tao = np.array([0.1, 0.2, 0.3, 0.4])
+        loc_EM = -np.ones(SA) * 22.86
+        sigma_EM = np.array([730., 610., 950., 895., 697., 1080., 480., 760., 850., 960., 830.])
+        tao = np.array([0.064, 0.067, 0.104, 0.051, 0.095, 0.184, 0.093, 0.090, 0.078, 0.058, 0.116])
+        prob_xi = np.zeros(SA)
         E = []
         M = []
         cnt = []
         ttl = 93046
-        SA = 4
         
         for iteration in range(n):
             
-            print("iteration:", iteration)
+            print("iteration:", iteration + 1)
             cnt.append(iteration)
         
-            sum_of_Tx = np.array([0., 0., 0., 0.])
-            sum_of_cov = np.array([0., 0., 0., 0.])
+            sum_of_Tx = np.zeros(SA)
+            sum_of_cov = np.zeros(SA)
             T_i = np.zeros((SA, ttl))
             div_T_i = np.zeros((SA, ttl))
             
@@ -194,31 +197,28 @@ class CarbonEmission(object):
             ''' E step. '''
             
             for i in range(ttl):
-                
                 for j in range(SA):
-                    prob_xi[j] = self.Levy(carbon_emi[i], sigma_EM[j], loc_EM[j], 1, 0)
+                    prob_xi[j] = self.Levy(carbon_emi[i], sigma_EM[j], loc_EM[j], 14.21960069, 0)
                 for j in range(SA):
                     T_i[j][i] = (prob_xi[j] * tao[j]) / np.dot(np.array(prob_xi), np.array(tao))
                     div_T_i[j][i] = 1 * (T_i[j][i] / carbon_emi[i])
-            
-            # for i in range(ttl):
-            #     print(i, "E step log E")
-            #     for j in range(SA):
-            #         prob_xi[j] = self.Levy(carbon_emi[i], sigma_EM[j], loc_EM[j], 1, 0)
-            #     log_like_E -= np.log(np.dot(np.array(prob_xi), np.array(tao)))
+                    
+                log_like_E -= np.log(np.dot(np.array(prob_xi), np.array(tao)))
                 
-            # E.append(log_like_E/ttl)
+            E.append(log_like_E/ttl)
+            print(log_like_E/ttl)
             
             ''' M step '''        
             
             tao = T_i.sum(axis=1) / ttl
             print(tao)
                         
-            loc_EM = np.array([0., 0., 0., 0.])
-            print(T_i.sum(axis=1))
-            print(div_T_i.sum(axis=1))
+            # print(T_i.sum(axis=1))
+            # print(div_T_i.sum(axis=1))
             sigma_EM = T_i.sum(axis=1) / div_T_i.sum(axis=1)
+            loc_EM = -0.14756 * sigma_EM + 106.6378
             print(sigma_EM)
+            print(loc_EM)
             # [ 9217.1303387  18523.44472832 27927.57088207 37377.85405091]
             # [6.66554190e+06 2.54397058e+04 7.07226861e+02 4.28174069e+02]
             # for i in range(ttl):
@@ -238,5 +238,5 @@ if __name__ == "__main__":
     carbon = CarbonEmission()
     mode_id = carbon.ModeChoice()
     n, non_zero, carbon_emi = carbon.TripEmission(mode_id)
-    tao, sigma_EM = carbon.EM_algorithm(3, carbon_emi)
+    tao, sigma_EM = carbon.EM_algorithm(50, carbon_emi)
     

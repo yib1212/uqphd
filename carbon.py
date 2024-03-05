@@ -169,12 +169,15 @@ class CarbonEmission(object):
     def EM_algorithm(self, n, carbon_emi):
         
         SA = 11
-        # loc_EM = np.zeros(SA)
+        loc_EM = np.zeros(SA)
         # sigma_EM = np.array([880., 865., 850., 840.])
         # tao = np.array([0.1, 0.2, 0.3, 0.4])
-        loc_EM = -np.ones(SA) * 22.86
-        sigma_EM = np.array([730., 610., 950., 895., 697., 1080., 480., 760., 850., 960., 830.])
-        tao = np.array([0.064, 0.067, 0.104, 0.051, 0.095, 0.184, 0.093, 0.090, 0.078, 0.058, 0.116])
+        # loc_EM = -np.ones(SA) * 22.86
+        # sigma_EM = np.array([730., 610., 950., 895., 697., 1080., 480., 760., 850., 960., 830.])
+        # sigma_EM = np.zeros(SA)
+        tao = np.array(     [0.064 , 0.067 , 0.104 , 0.051 , 0.095, 0.184  , 0.093  , 0.090  , 0.078  , 0.058 , 0.116  ])
+        sigma_EM = np.array([653.13, 186.95, 265.34, 269.65, 81.74, 1857.89, 6681.15, 2586.15, 4344.46, 773.39, 3085.91])
+        
         prob_xi = np.zeros(SA)
         E = []
         M = []
@@ -198,7 +201,7 @@ class CarbonEmission(object):
             
             for i in range(ttl):
                 for j in range(SA):
-                    prob_xi[j] = self.Levy(carbon_emi[i], sigma_EM[j], loc_EM[j], 14.21960069, 0)
+                    prob_xi[j] = self.Levy(carbon_emi[i], sigma_EM[j], loc_EM[j], 1, 0)
                 for j in range(SA):
                     T_i[j][i] = (prob_xi[j] * tao[j]) / np.dot(np.array(prob_xi), np.array(tao))
                     div_T_i[j][i] = 1 * (T_i[j][i] / carbon_emi[i])
@@ -216,9 +219,9 @@ class CarbonEmission(object):
             # print(T_i.sum(axis=1))
             # print(div_T_i.sum(axis=1))
             sigma_EM = T_i.sum(axis=1) / div_T_i.sum(axis=1)
-            loc_EM = -0.14756 * sigma_EM + 106.6378
+            # loc_EM = -0.14756 * sigma_EM + 106.6378
             print(sigma_EM)
-            print(loc_EM)
+            # print(loc_EM)
             # [ 9217.1303387  18523.44472832 27927.57088207 37377.85405091]
             # [6.66554190e+06 2.54397058e+04 7.07226861e+02 4.28174069e+02]
             # for i in range(ttl):
@@ -229,8 +232,30 @@ class CarbonEmission(object):
                 
             # M.append(log_like_M/ttl)
             
-        return(tao, sigma_EM)
+        
             
+        return(tao, sigma_EM)
+    
+    
+    def PlotLevy(self):
+        
+        ttl = 93046
+        x = range(10000)
+        y1 = np.array(self.Levy(x, 603, 0, 1, 0))
+        # * 93046 * 10 * (1 - 0.093)
+        y2 = np.array(self.Levy(x, 215, 0, 1, 0))
+        # * 93046 * 10 * 0.093
+        y = y1 + y2
+               
+        plt.axis([0, 2000, 0, 90/93046*2.7])
+        # plt.hist(self.hist_emi, self.num_bins, color=(0, 0, 1))
+        plt.plot(x, y1, 'k', linewidth=2, c='red', label='Levy-603')
+        plt.plot(x, y2, 'k', linewidth=2, c='blue', label='Levy-215')
+        # plt.plot(x, y, 'k', linewidth=2, c='black', label='Levy')
+        plt.show()
+        
+        return None
+      
     
 
 if __name__ == "__main__":
@@ -238,5 +263,6 @@ if __name__ == "__main__":
     carbon = CarbonEmission()
     mode_id = carbon.ModeChoice()
     n, non_zero, carbon_emi = carbon.TripEmission(mode_id)
-    tao, sigma_EM = carbon.EM_algorithm(50, carbon_emi)
+    tao, sigma_EM = carbon.EM_algorithm(20, carbon_emi)
+    # carbon.PlotLevy()
     
